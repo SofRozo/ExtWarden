@@ -59,7 +59,7 @@ function getHostname(url: string): string {
 async function getFromStorage<T>(key: string, defaultValue: T): Promise<T> {
   return new Promise(resolve => {
     chrome.storage.local.get(key, result => {
-      resolve(result[key] !== undefined ? result[key] : defaultValue);
+      resolve(result[key] !== undefined ? (result[key] as T) : defaultValue);
     });
   });
 }
@@ -235,8 +235,16 @@ chrome.tabs.onRemoved.addListener(tabId => {
   reEnableExtensions(tabId);
 });
 
-chrome.management.onInstalled.addListener(ext => {
-  if (ext.type === 'extension' && ext.id !== chrome.runtime.id) {
+chrome.management.onInstalled.addListener((ext) => { void (async () => {
+  if (ext.type !== 'extension' || ext.id === chrome.runtime.id) return;
+
+  const snapshots = await getFromStorage<Record<string, { version: string; permissions: string[]; hostPermissions: string[] }>>('extSnapshots', {});
+  const prev = snapshots[ext.id];
+  const perms: string[] = ext.permissions ?? [];
+  const hosts: string[] = ext.hostPermissions ?? [];
+
+  if (!prev) {
+    // Primera vez que se ve: registrar como instalación
     addActivity({
       extensionId: ext.id,
       extensionName: ext.name,
@@ -244,8 +252,62 @@ chrome.management.onInstalled.addListener(ext => {
       action: 'installed',
       detail: `Nueva extensión: ${ext.name} v${ext.version}`,
     });
+  } else if (prev.version !== ext.version) {
+    // Actualización: comparar permisos
+    const added = [
+      ...perms.filter(p => !prev.permissions.includes(p)),
+      ...hosts.filter(h => !prev.hostPermissions.includes(h)),
+    ];
+
+    if (added.length > 0) {
+      // Zero-trust: deshabilitar automáticamente
+      try { await chrome.management.setEnabled(ext.id, false); } catch { /* may lack permission */ }
+
+      addActivity({
+        extensionId: ext.id,
+        extensionName: ext.name,
+        module: 'Detección de Cambios',
+        action: 'warning',
+        detail: `Nuevos permisos tras actualización v${prev.version}→v${ext.version}: ${added.join(', ')}`,
+      });
+
+      // Guardar en changeHistory para que Updates.tsx lo muestre
+      const history = await getFromStorage<object[]>('changeHistory', []);
+      history.unshift({
+        id: `chg-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        extensionId: ext.id,
+        extensionName: ext.name,
+        type: 'new_permissions',
+        details: `v${prev.version} → v${ext.version}`,
+        newPermissions: added,
+        autoDisabled: true,
+      });
+      await setInStorage('changeHistory', history.slice(0, 100));
+
+      // Notificación nativa de Chrome
+      chrome.notifications.create(`update-${ext.id}`, {
+        type: 'basic',
+        iconUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVQI12NgAAIABQAABjE+ibYAAAAASUVORK5CYII=',
+        title: 'ExtWarden — Nuevos permisos detectados',
+        message: `"${ext.name}" solicitó nuevos permisos y fue deshabilitada. Revísala en el panel.`,
+        priority: 2,
+      });
+    } else {
+      addActivity({
+        extensionId: ext.id,
+        extensionName: ext.name,
+        module: 'Detección de Cambios',
+        action: 'allowed',
+        detail: `Actualización sin cambios de permisos: v${prev.version}→v${ext.version}`,
+      });
+    }
   }
-});
+
+  // Actualizar snapshot
+  snapshots[ext.id] = { version: ext.version, permissions: perms, hostPermissions: hosts };
+  await setInStorage('extSnapshots', snapshots);
+})(); });
 
 chrome.management.onUninstalled.addListener(id => {
   addActivity({

@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "ExtWarden",
+  "version": "1.0.0",
+  "description": "Analiza los permisos de tus extensiones y te protege en sitios sensibles.",
+  "permissions": [
+    "management",
+    "storage",
+    "tabs",
+    "activeTab",
+    "alarms",
+    "notifications"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "options_page": "options.html",
+  "background": {
+    "service_worker": "service-worker.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content-script.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

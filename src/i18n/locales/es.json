@@ -1,0 +1,139 @@
+{
+  "app": {
+    "name": "ExtWarden",
+    "headline": "Protege tu navegación.",
+    "subheadline": "Gestiona tus extensiones, detecta riesgos y protege tus sitios sensibles."
+  },
+  "common": { "save": "Guardar", "cancel": "Cancelar", "loading": "Cargando..." },
+  "sidebar": {
+    "dashboard": "Inicio",
+    "audit": "Auditoría",
+    "updates": "Actualizaciones",
+    "zones": "Zonas Seguras",
+    "about": "Acerca de"
+  },
+  "dashboard": {
+    "title": "Inicio",
+    "breadcrumb": "Resumen de seguridad",
+    "statusSecure": "SISTEMA SEGURO",
+    "statusCritical": "ATENCIÓN REQUERIDA",
+    "heroTitle": "Tu navegador está siendo monitoreado",
+    "heroDesc": "Se detectaron {{count}} vectores de riesgo entre las extensiones instaladas.",
+    "privacyScore": "PUNTUACIÓN DE PRIVACIDAD",
+    "scoreExcellent": "{{percent}}% de riesgo acumulado en tus extensiones",
+    "stats": {
+      "extensions": "EXTENSIONES",
+      "extensionsActive": "activas",
+      "extensionsValidated": "Todas validadas",
+      "threats": "AMENAZAS",
+      "threatsBlocked": "bloqueadas",
+      "threatsTimeframe": "Últimos 30 días",
+      "zones": "ZONAS",
+      "zonesRestricted": "restringidas",
+      "zonesLevel": "Protección alta"
+    },
+    "activity": {
+      "title": "Actividad Reciente",
+      "noActivity": "Sin actividad registrada."
+    }
+  },
+  "audit": {
+    "title": "Auditoría de Permisos",
+    "subtitle": "Supervisión en tiempo real de accesos y vulnerabilidades.",
+    "inventory": "Inventario de Extensiones",
+    "search": "Buscar extensión...",
+    "showing": "Mostrando {{from}} de {{total}}",
+    "statsCards": {
+      "total": "TOTAL EXTENSIONES",
+      "totalSub": "Analizadas con el motor de riesgo",
+      "high": "RIESGO ALTO",
+      "highSub": "Requieren revisión de permisos",
+      "critical": "RIESGO CRÍTICO",
+      "criticalSub": "Acción inmediata recomendada"
+    },
+    "columns": {
+      "extension": "EXTENSIÓN",
+      "category": "CATEGORÍA",
+      "permissions": "PERMISOS SENSIBLES",
+      "risk": "NIVEL DE RIESGO",
+      "action": "ESTADO"
+    },
+    "riskLevels": {
+      "critical": "Crítico",
+      "high": "Alto",
+      "medium": "Moderado",
+      "low": "Bajo",
+      "safe": "Seguro"
+    }
+  },
+  "updates": {
+    "title": "Detección de Cambios",
+    "subtitle": "Monitoreo de actualizaciones y cambios de permisos en tus extensiones.",
+    "noChanges": "Sin cambios detectados.",
+    "firstRun": "Instala ExtWarden para comenzar a monitorear actualizaciones.",
+    "clearHistory": "Limpiar historial",
+    "pendingReview": "Extensiones con permisos nuevos — requieren revisión",
+    "reEnable": "Revisar y reactivar",
+    "changeTypes": {
+      "version_change": "Cambio de versión",
+      "new_permissions": "Nuevos permisos",
+      "removed_permissions": "Permisos removidos",
+      "installed": "Instalada",
+      "uninstalled": "Desinstalada"
+    }
+  },
+  "zones": {
+    "title": "Zonas Seguras",
+    "subtitle": "Agrupa sitios sensibles por categoría. Las extensiones riesgosas serán bloqueadas automáticamente.",
+    "newCategory": "Nueva categoría",
+    "categoryName": "Nombre de la categoría",
+    "categoryPlaceholder": "ej: Banca, Universidad, IA...",
+    "urls": "URLs (separadas por coma)",
+    "urlPlaceholder": "ej: *.bancolombia.com, *.davivienda.com",
+    "addUrl": "Agregar URL",
+    "addUrlPlaceholder": "Nueva URL...",
+    "noZones": "No hay zonas configuradas. Crea una categoría para empezar.",
+    "sites": "sitios",
+    "delete": "Eliminar",
+    "wildcardHint": "Usa *.dominio.com para incluir subdominios"
+  },
+  "risk": {
+    "critical": "Crítico",
+    "high": "Alto",
+    "medium": "Moderado",
+    "low": "Bajo",
+    "safe": "Seguro"
+  },
+  "alert": {
+    "title": "Bloqueo de Seguridad",
+    "message": "Se impidió la ejecución de {{name}} (riesgo {{level}}) en este sitio.",
+    "dismiss": "Ignorar",
+    "disableExt": "Desactivar extensión"
+  },
+  "about": {
+    "description": "ExtWarden analiza las extensiones de Chrome instaladas y te protege en sitios sensibles usando un modelo de riesgo basado en permisos, categorías funcionales y alcance de host.",
+    "featuresTitle": "Funcionalidades",
+    "features": {
+      "riskAudit": "Motor de auditoría semi-cuantitativo de permisos",
+      "contextZones": "Control contextual por zonas seguras",
+      "realtime": "Detección de cambios en tiempo real",
+      "i18n": "Interfaz bilingüe (ES / EN)",
+      "privacyFirst": "Sin telemetría ni conexión a servidores externos"
+    },
+    "howItWorks": "Cómo funciona",
+    "steps": {
+      "step1": "El motor de auditoría calcula un puntaje de riesgo combinando el peso de cada permiso, su coherencia con la categoría de la extensión, y el alcance de los host_permissions.",
+      "step2": "El módulo de detección de cambios crea snapshots de permisos y versiones, alertando cuando una actualización introduce nuevos privilegios.",
+      "step3": "El control contextual monitorea cada navegación y deshabilita automáticamente las extensiones riesgosas en sitios definidos como zonas seguras."
+    }
+  },
+  "popup": {
+    "detectedDomain": "Dominio detectado",
+    "noDomain": "Sin dominio activo",
+    "contextSafe": "Contexto seguro",
+    "contextCritical": "Zona de protección activa",
+    "extensions": "Extensiones activas",
+    "openDashboard": "Abrir panel completo",
+    "loading": "Cargando..."
+  }
+}

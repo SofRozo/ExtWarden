@@ -1,0 +1,139 @@
+{
+  "app": {
+    "name": "ExtWarden",
+    "headline": "Protect your browsing.",
+    "subheadline": "Manage your extensions, detect risks and protect your sensitive sites."
+  },
+  "common": { "save": "Save", "cancel": "Cancel", "loading": "Loading..." },
+  "sidebar": {
+    "dashboard": "Home",
+    "audit": "Audit",
+    "updates": "Updates",
+    "zones": "Safe Zones",
+    "about": "About"
+  },
+  "dashboard": {
+    "title": "Home",
+    "breadcrumb": "Security overview",
+    "statusSecure": "SYSTEM SECURE",
+    "statusCritical": "ATTENTION REQUIRED",
+    "heroTitle": "Your browser is being monitored",
+    "heroDesc": "{{count}} risk vectors detected across installed extensions.",
+    "privacyScore": "PRIVACY SCORE",
+    "scoreExcellent": "{{percent}}% cumulative risk in your extensions",
+    "stats": {
+      "extensions": "EXTENSIONS",
+      "extensionsActive": "active",
+      "extensionsValidated": "All validated",
+      "threats": "THREATS",
+      "threatsBlocked": "blocked",
+      "threatsTimeframe": "Last 30 days",
+      "zones": "ZONES",
+      "zonesRestricted": "restricted",
+      "zonesLevel": "High protection"
+    },
+    "activity": {
+      "title": "Recent Activity",
+      "noActivity": "No activity recorded."
+    }
+  },
+  "audit": {
+    "title": "Permission Audit",
+    "subtitle": "Real-time supervision of accesses and vulnerabilities.",
+    "inventory": "Extension Inventory",
+    "search": "Search extension...",
+    "showing": "Showing {{from}} of {{total}}",
+    "statsCards": {
+      "total": "EXTENSIONS",
+      "totalSub": "Analyzed with risk engine",
+      "high": "HIGH RISK",
+      "highSub": "Permission review required",
+      "critical": "CRITICAL RISK",
+      "criticalSub": "Immediate action recommended"
+    },
+    "columns": {
+      "extension": "EXTENSION",
+      "category": "CATEGORY",
+      "permissions": "SENSITIVE PERMISSIONS",
+      "risk": "RISK LEVEL",
+      "action": "STATUS"
+    },
+    "riskLevels": {
+      "critical": "Critical",
+      "high": "High",
+      "medium": "Moderate",
+      "low": "Low",
+      "safe": "Safe"
+    }
+  },
+  "updates": {
+    "title": "Change Detection",
+    "subtitle": "Update monitoring and privilege escalation detection",
+    "noChanges": "No changes detected.",
+    "firstRun": "Install ExtWarden to start monitoring updates.",
+    "clearHistory": "Clear history",
+    "pendingReview": "Extensions with new permissions — review required",
+    "reEnable": "Review & re-enable",
+    "changeTypes": {
+      "version_change": "Version change",
+      "new_permissions": "New permissions",
+      "removed_permissions": "Removed permissions",
+      "installed": "Installed",
+      "uninstalled": "Uninstalled"
+    }
+  },
+  "zones": {
+    "title": "Safe Zones",
+    "subtitle": "Group sensitive sites by category. Risky extensions will be blocked automatically.",
+    "newCategory": "New category",
+    "categoryName": "Category name",
+    "categoryPlaceholder": "e.g.: Banking, University, AI...",
+    "urls": "URLs (comma separated)",
+    "urlPlaceholder": "e.g.: *.bank.com, *.otherbank.com",
+    "addUrl": "Add URL",
+    "addUrlPlaceholder": "New URL...",
+    "noZones": "No zones configured. Create a category to get started.",
+    "sites": "sites",
+    "delete": "Delete",
+    "wildcardHint": "Use *.domain.com to include subdomains"
+  },
+  "risk": {
+    "critical": "Critical",
+    "high": "High",
+    "medium": "Moderate",
+    "low": "Low",
+    "safe": "Safe"
+  },
+  "alert": {
+    "title": "Security Block",
+    "message": "Execution of {{name}} (risk {{level}}) was prevented on this site.",
+    "dismiss": "Dismiss",
+    "disableExt": "Disable extension"
+  },
+  "about": {
+    "description": "ExtWarden analyzes installed Chrome extensions and protects you on sensitive sites using a risk model based on permissions, functional categories, and host scope.",
+    "featuresTitle": "Features",
+    "features": {
+      "riskAudit": "Semi-quantitative permission audit engine",
+      "contextZones": "Context-based protection with safe zones",
+      "realtime": "Real-time change detection",
+      "i18n": "Bilingual interface (ES / EN)",
+      "privacyFirst": "No telemetry or external server connections"
+    },
+    "howItWorks": "How it works",
+    "steps": {
+      "step1": "The audit engine calculates a risk score combining each permission's weight, its coherence with the extension's category, and the host_permissions scope.",
+      "step2": "The change detection module creates permission and version snapshots, alerting when an update introduces new privileges.",
+      "step3": "Context control monitors every navigation and automatically disables risky extensions on sites defined as safe zones."
+    }
+  },
+  "popup": {
+    "detectedDomain": "Detected domain",
+    "noDomain": "No active domain",
+    "contextSafe": "Safe context",
+    "contextCritical": "Protection zone active",
+    "extensions": "Active extensions",
+    "openDashboard": "Open full dashboard",
+    "loading": "Loading..."
+  }
+}
