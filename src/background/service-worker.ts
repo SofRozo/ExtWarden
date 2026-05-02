@@ -8,7 +8,7 @@
  * 5. Track blocked counters & activity log
  */
 
-import { computeRisk } from '../engine/riskEngine';
+import { computeRisk, inferCategory } from '../engine/riskEngine';
 
 interface CriticalZone {
   id: string;
@@ -31,8 +31,13 @@ interface ActivityEvent {
 // ── Utility ──
 
 function matchesZonePattern(hostname: string, pattern: string): boolean {
-  // Normalize: remove protocol, trailing slashes
-  const clean = pattern.replace(/^https?:\/\//, '').replace(/\/+$/, '').toLowerCase();
+  // Normalize: remove protocol, path, port and trailing slashes — keep only the host
+  const clean = pattern
+    .replace(/^https?:\/\//, '')  // strip protocol
+    .split('/')[0]                 // strip path
+    .split(':')[0]                 // strip port
+    .replace(/\.*$/, '')           // strip trailing dots
+    .toLowerCase();
   const host = hostname.toLowerCase();
 
   // Wildcard pattern like *.bancolombia.com
@@ -109,7 +114,14 @@ async function reEnableExtensions(tabId: number): Promise<void> {
   const ids = disabledByZone.get(tabId);
   if (!ids || ids.length === 0) return;
 
+  // Extensions still held by other tabs must not be re-enabled
+  const heldElsewhere = new Set<string>();
+  for (const [otherTabId, otherIds] of disabledByZone.entries()) {
+    if (otherTabId !== tabId) otherIds.forEach(id => heldElsewhere.add(id));
+  }
+
   for (const extId of ids) {
+    if (heldElsewhere.has(extId)) continue;
     try {
       await chrome.management.setEnabled(extId, true);
     } catch {
@@ -120,24 +132,36 @@ async function reEnableExtensions(tabId: number): Promise<void> {
 }
 
 async function evaluateTab(tabId: number, url: string): Promise<void> {
+  console.log('[ExtWarden] evaluateTab →', url);
+
   const protectionEnabled = await getFromStorage<boolean>('protectionEnabled', true);
+  console.log('[ExtWarden] protectionEnabled:', protectionEnabled);
   if (!protectionEnabled) {
     await reEnableExtensions(tabId);
     return;
   }
 
   const hostname = getHostname(url);
+  console.log('[ExtWarden] hostname:', hostname);
   if (!hostname) {
     await reEnableExtensions(tabId);
     return;
   }
 
   const zones = await getFromStorage<CriticalZone[]>('criticalZones', []);
+  console.log('[ExtWarden] zones in storage:', JSON.stringify(zones));
 
   // Find zone where ANY pattern matches the hostname
-  const activeZone = zones.find(z =>
-    z.patterns.some(p => matchesZonePattern(hostname, p))
-  );
+  const activeZone = zones.find(z => {
+    const matched = z.patterns.some(p => {
+      const result = matchesZonePattern(hostname, p);
+      console.log(`[ExtWarden] matchesZonePattern("${hostname}", "${p}") =`, result);
+      return result;
+    });
+    return matched;
+  });
+
+  console.log('[ExtWarden] activeZone:', activeZone ? activeZone.category : 'none');
 
   // If NOT in a zone, re-enable any previously disabled extensions
   if (!activeZone) {
@@ -150,52 +174,38 @@ async function evaluateTab(tabId: number, url: string): Promise<void> {
 
   // Evaluate ALL extensions
   const extensions = await chrome.management.getAll();
+  console.log('[ExtWarden] total extensions found:', extensions.length);
+
   const riskyExts = extensions.filter(ext => {
-    if (ext.type !== 'extension' || !ext.enabled || ext.id === chrome.runtime.id) return false;
+    if (ext.type !== 'extension' || !ext.enabled || ext.id === chrome.runtime.id) {
+      console.log(`[ExtWarden] skip "${ext.name}": type=${ext.type} enabled=${ext.enabled} self=${ext.id === chrome.runtime.id}`);
+      return false;
+    }
 
     const permissions = ext.permissions ?? [];
     const hostPermissions = ext.hostPermissions ?? [];
-    const category = categoryOverrides[ext.id] ?? 'Tools';
-
+    const category = categoryOverrides[ext.id] ?? inferCategory(ext);
     const risk = computeRisk(permissions, hostPermissions, category);
 
-    // Block if risk is high or critical in a critical zone
+    console.log(`[ExtWarden] "${ext.name}" → category=${category} score=${risk.score} level=${risk.level}`);
     return risk.level === 'critical' || risk.level === 'high';
   });
+
+  console.log('[ExtWarden] risky extensions to block:', riskyExts.map(e => e.name));
 
   const disabledIds: string[] = [];
 
   for (const ext of riskyExts) {
-    const permissions = ext.permissions ?? [];
-    const hostPermissions = ext.hostPermissions ?? [];
-
     // Auto-disable the risky extension
     try {
+      console.log(`[ExtWarden] calling setEnabled(false) for "${ext.name}" (${ext.id})`);
       await chrome.management.setEnabled(ext.id, false);
+      console.log(`[ExtWarden] setEnabled(false) SUCCESS for "${ext.name}"`);
       disabledIds.push(ext.id);
-    } catch {
-      // May lack permission to disable
+    } catch (err) {
+      console.error(`[ExtWarden] setEnabled(false) FAILED for "${ext.name}":`, err);
     }
 
-    // Notify user via content script alert
-    try {
-      await chrome.tabs.sendMessage(tabId, {
-        action: 'showAlert',
-        extension: {
-          id: ext.id,
-          name: ext.name,
-          permissions,
-          hostPermissions,
-        },
-        zone: {
-          id: activeZone.id,
-          category: activeZone.category,
-          pattern: activeZone.patterns.join(', '),
-        },
-      });
-    } catch {
-      // Content script not ready
-    }
 
     await addActivity({
       extensionId: ext.id,
@@ -288,7 +298,7 @@ chrome.management.onInstalled.addListener((ext) => { void (async () => {
       // Notificación nativa de Chrome
       chrome.notifications.create(`update-${ext.id}`, {
         type: 'basic',
-        iconUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVQI12NgAAIABQAABjE+ibYAAAAASUVORK5CYII=',
+        iconUrl: 'icons/icon.png',
         title: 'ExtWarden — Nuevos permisos detectados',
         message: `"${ext.name}" solicitó nuevos permisos y fue deshabilitada. Revísala en el panel.`,
         priority: 2,
@@ -307,6 +317,7 @@ chrome.management.onInstalled.addListener((ext) => { void (async () => {
   // Actualizar snapshot
   snapshots[ext.id] = { version: ext.version, permissions: perms, hostPermissions: hosts };
   await setInStorage('extSnapshots', snapshots);
+
 })(); });
 
 chrome.management.onUninstalled.addListener(id => {
@@ -353,3 +364,277 @@ chrome.alarms.onAlarm.addListener(alarm => {
 });
 
 console.log('[ExtWarden] Service Worker initialized');
+
+// ── Ext-Sandbox Backend Integration ──────────────────────────────────────────
+
+const BACKEND_URL = 'http://localhost:3000';
+const SANDBOX_POLL_ALARM = 'extSandboxPoll';
+const FETCH_TIMEOUT_MS = 10_000;
+const MAX_FAILURE_COUNT = 10;
+
+interface SandboxJobSW {
+  jobId: string;
+  extensionName: string;
+  status: 'queued' | 'downloading' | 'static_analysis' | 'dynamic_analysis' | 'threat_intel' | 'completed' | 'failed';
+  submittedAt: string;
+  completedAt?: string;
+  failureCount: number;
+}
+
+interface SandboxReportSW {
+  jobId: string;
+  riskLevel: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE';
+  confidence: number;
+  recommendation: string;
+  findings: Array<{ category: string; severity: string; description: string; evidence?: string }>;
+  contactedUrls: string[];
+  abusedPermissions: string[];
+  privacyLabels: any[];
+  staticFindings: any[];
+  dynamicEvidence: { networkRequests?: any[]; domMutations?: any[]; keyboardEvents?: any[]; apiCalls?: any[]; screenshotPaths?: string[] } | null;
+  threatIntelResults: any[];
+  contactedUrlsReputation: any[];
+}
+
+function fetchWithTimeout(url: string, init?: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  return fetch(url, { ...init, signal: controller.signal }).finally(() => clearTimeout(timer));
+}
+
+// Normalizes the backend report to our internal schema.
+// The backend may return `overallRisk` (lowercase) instead of `riskLevel` (uppercase),
+// may put behavioral findings in `privacyLabels` as objects instead of `findings`,
+// and may put contacted URLs in `dynamicAnalysis.networkRequests`.
+function normalizeReport(raw: Record<string, unknown>): SandboxReportSW {
+  const VALID_RISKS = new Set(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'NONE']);
+
+  const riskRaw = ((raw.riskLevel ?? raw.overallRisk ?? 'NONE') as string).toUpperCase();
+  const riskLevel = VALID_RISKS.has(riskRaw)
+    ? (riskRaw as SandboxReportSW['riskLevel'])
+    : 'NONE';
+
+  const toStr = (v: unknown): string =>
+    typeof v === 'string' ? v : (v != null ? JSON.stringify(v) : '');
+
+  const toStringArray = (v: unknown): string[] =>
+    Array.isArray(v) ? (v as unknown[]).map(x => (typeof x === 'string' ? x : JSON.stringify(x))) : [];
+
+  const mapFinding = (f: Record<string, unknown>) => ({
+    category:    toStr(f.category ?? f.title),
+    severity:    toStr(f.severity).toUpperCase(),
+    description: toStr(f.description),
+    evidence:    f.evidence != null
+      ? (Array.isArray(f.evidence)
+          ? (f.evidence as unknown[]).map(toStr).join('\n')
+          : toStr(f.evidence))
+      : undefined,
+  });
+
+  const rawFindings = Array.isArray(raw.findings) ? raw.findings as Record<string, unknown>[] : [];
+  const rawStaticFindings = Array.isArray(raw.staticFindings) ? raw.staticFindings as Record<string, unknown>[] : [];
+  const rawPrivacyArr = Array.isArray(raw.privacyLabels) ? raw.privacyLabels as unknown[] : [];
+
+  const findings = [...rawFindings, ...rawStaticFindings].map(mapFinding);
+
+  const privacyLabels = rawPrivacyArr.map(l => {
+    if (typeof l === 'object' && l !== null) {
+      return l; // Keep the whole object
+    } else if (typeof l === 'string') {
+      try {
+        return JSON.parse(l);
+      } catch (e) {
+        return { title: 'Unknown Label', category: 'UNKNOWN', description: l, evidence: [], severity: 'LOW' };
+      }
+    }
+    return { title: 'Unknown Label', category: 'UNKNOWN', description: toStr(l), evidence: [], severity: 'LOW' };
+  });
+
+  // Backend may place contacted URLs in dynamicEvidence.networkRequests or contactedUrlsReputation
+  const rawDynamic = (raw.dynamicEvidence ?? raw.dynamicAnalysis ?? {}) as Record<string, unknown>;
+  const networkRequests = Array.isArray(rawDynamic.networkRequests) ? rawDynamic.networkRequests as unknown[] : [];
+  const rawReputation = Array.isArray(raw.contactedUrlsReputation) ? raw.contactedUrlsReputation as Record<string, unknown>[] : [];
+  
+  const allUrls = [
+    ...toStringArray(raw.contactedUrls),
+    ...networkRequests.map(r => {
+        if (typeof r === 'string') return r;
+        if (typeof r === 'object' && r !== null) {
+          const req = r as Record<string, unknown>;
+          return toStr(req.url ?? req.host ?? req);
+        }
+        return '';
+    }),
+    ...rawReputation.map(r => toStr(r.url ?? r.hostname))
+  ].filter(Boolean);
+  
+  const contactedUrls = [...new Set(allUrls)];
+
+  return {
+    jobId:            toStr(raw.jobId),
+    riskLevel,
+    confidence:       (raw.confidence ?? 0) as number,
+    recommendation:   toStr(raw.recommendation ?? 'NO_SIGNIFICANT_RISKS'),
+    findings,
+    contactedUrls,
+    abusedPermissions: toStringArray(raw.abusedPermissions),
+    privacyLabels:    privacyLabels as any,
+    staticFindings:   Array.isArray(raw.staticFindings) ? raw.staticFindings : [],
+    dynamicEvidence:  (raw.dynamicEvidence ?? raw.dynamicAnalysis ?? { networkRequests: [], domMutations: [], keyboardEvents: [], apiCalls: [], screenshotPaths: [] }) as SandboxReportSW['dynamicEvidence'],
+    threatIntelResults: Array.isArray(raw.threatIntelResults) ? raw.threatIntelResults : [],
+    contactedUrlsReputation: Array.isArray(raw.contactedUrlsReputation) ? raw.contactedUrlsReputation : [],
+  };
+}
+
+async function ensurePollingAlarm(): Promise<void> {
+  const existing = await chrome.alarms.get(SANDBOX_POLL_ALARM);
+  if (!existing) {
+    chrome.alarms.create(SANDBOX_POLL_ALARM, { periodInMinutes: 0.5 });
+  }
+}
+
+async function submitToBackend(extensionId: string, extensionName: string): Promise<boolean> {
+  try {
+    const res = await fetchWithTimeout(`${BACKEND_URL}/analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ extensionId }),
+    });
+    if (!res.ok) return false;
+    const data = await res.json() as { jobId: string; status: string };
+
+    const jobs = await getFromStorage<Record<string, SandboxJobSW>>('sandboxJobs', {});
+    jobs[extensionId] = {
+      jobId: data.jobId,
+      extensionName,
+      status: 'queued',
+      submittedAt: new Date().toISOString(),
+      failureCount: 0,
+    };
+    await setInStorage('sandboxJobs', jobs);
+    await ensurePollingAlarm();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function pollSandboxJobs(): Promise<void> {
+  const jobs = await getFromStorage<Record<string, SandboxJobSW>>('sandboxJobs', {});
+  const pending = Object.entries(jobs).filter(
+    ([, j]) => j.status !== 'completed' && j.status !== 'failed' && j.failureCount < MAX_FAILURE_COUNT,
+  );
+
+  if (pending.length === 0) {
+    const anyPending = Object.values(jobs).some(
+      j => j.status !== 'completed' && j.status !== 'failed',
+    );
+    if (!anyPending) chrome.alarms.clear(SANDBOX_POLL_ALARM);
+    return;
+  }
+
+  let changed = false;
+
+  for (const [extId, job] of pending) {
+    try {
+      const res = await fetchWithTimeout(`${BACKEND_URL}/status/${job.jobId}`);
+      if (!res.ok) {
+        jobs[extId].failureCount++;
+        changed = true;
+        continue;
+      }
+      const { status } = await res.json() as { status: SandboxJobSW['status'] };
+      jobs[extId].status = status;
+      jobs[extId].failureCount = 0; // reset on any successful response
+      changed = true;
+
+      if (status === 'completed') {
+        jobs[extId].completedAt = new Date().toISOString();
+        try {
+          const repRes = await fetchWithTimeout(`${BACKEND_URL}/report/${job.jobId}`);
+          if (repRes.ok) {
+            const raw = await repRes.json() as Record<string, unknown>;
+            const report = normalizeReport(raw);
+            const reports = await getFromStorage<Record<string, SandboxReportSW>>('sandboxReports', {});
+            reports[extId] = report;
+            await setInStorage('sandboxReports', reports);
+            showSandboxNotification(extId, job.extensionName, report);
+          }
+        } catch { /* report fetch failed — retry next poll */ }
+      }
+    } catch {
+      jobs[extId].failureCount++;
+      changed = true;
+    }
+  }
+
+  if (changed) await setInStorage('sandboxJobs', jobs);
+}
+
+function showSandboxNotification(extId: string, extName: string, report: SandboxReportSW): void {
+  const ICON = 'icons/icon.png';
+  let title: string;
+  let message: string;
+  let priority: number;
+
+  if (report.riskLevel === 'CRITICAL' || report.riskLevel === 'HIGH') {
+    title = `⚠️ Riesgo detectado: ${extName}`;
+    message = `${report.findings.length} comportamiento(s) malicioso(s) encontrado(s). Toca para ver detalles.`;
+    priority = 2;
+  } else if (report.riskLevel === 'MEDIUM') {
+    title = `Análisis completado: ${extName}`;
+    message = 'Comportamiento sospechoso detectado. Revisa el reporte.';
+    priority = 1;
+  } else {
+    title = `✓ ${extName} analizada`;
+    message = 'Sin comportamientos maliciosos detectados.';
+    priority = 0;
+  }
+
+  chrome.notifications.create(`sandbox-${extId}`, {
+    type: 'basic',
+    iconUrl: ICON,
+    title,
+    message,
+    priority,
+  });
+}
+
+// Notification click → open options page and queue the drawer open
+chrome.notifications.onClicked.addListener(notificationId => {
+  if (!notificationId.startsWith('sandbox-')) return;
+  const extId = notificationId.slice('sandbox-'.length);
+  void setInStorage('openDrawerForExtension', extId);
+  chrome.runtime.openOptionsPage();
+  chrome.notifications.clear(notificationId);
+});
+
+// Sandbox poll alarm
+chrome.alarms.onAlarm.addListener(alarm => {
+  if (alarm.name === SANDBOX_POLL_ALARM) {
+    void pollSandboxJobs();
+  }
+});
+
+// Reanalyze message from options page
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message.action === 'reanalyzeExtension' && message.extensionId) {
+    void (async () => {
+      const jobs = await getFromStorage<Record<string, SandboxJobSW>>('sandboxJobs', {});
+      delete jobs[message.extensionId as string];
+      await setInStorage('sandboxJobs', jobs);
+      const reports = await getFromStorage<Record<string, object>>('sandboxReports', {});
+      delete reports[message.extensionId as string];
+      await setInStorage('sandboxReports', reports);
+      const ok = await submitToBackend(
+        message.extensionId as string,
+        (message.extensionName as string) ?? (message.extensionId as string),
+      );
+      sendResponse({ success: ok });
+    })();
+    return true;
+  }
+});
+
+// Resume polling for any in-progress jobs from previous session
+void ensurePollingAlarm();

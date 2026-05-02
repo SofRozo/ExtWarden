@@ -35,3 +35,72 @@ export interface ActivityEvent {
 }
 
 export type OptionsPage = 'audit' | 'updates' | 'zones' | 'about';
+
+// ── Ext-Sandbox backend types ─────────────────────────────────────────────────
+
+export type BackendRiskLevel = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE';
+export type BackendJobStatus =
+  | 'queued'
+  | 'downloading'
+  | 'static_analysis'
+  | 'dynamic_analysis'
+  | 'threat_intel'
+  | 'completed'
+  | 'failed';
+export type BackendRecommendation =
+  | 'UNINSTALL_IMMEDIATELY'
+  | 'REVIEW_BEFORE_USE'
+  | 'MONITOR'
+  | 'NO_SIGNIFICANT_RISKS';
+export type FindingCategory =
+  | 'KEYLOGGER'
+  | 'DATA_THEFT'
+  | 'INJECTION'
+  | 'EXFILTRATION'
+  | 'PERSISTENCE'
+  | 'DOMAIN_TARGETING';
+
+export interface BackendFinding {
+  category: FindingCategory;
+  severity: BackendRiskLevel;
+  description: string;
+  evidence?: string;
+}
+
+export interface BackendPrivacyLabel {
+  title: string;
+  category: string;
+  description: string;
+  evidence: string[];
+  severity: string;
+}
+
+export interface SandboxReport {
+  jobId: string;
+  riskLevel: BackendRiskLevel;
+  confidence: number;
+  recommendation: BackendRecommendation;
+  findings: BackendFinding[];
+  contactedUrls: string[];
+  abusedPermissions: string[];
+  privacyLabels: BackendPrivacyLabel[];
+  staticFindings: any[];
+  dynamicEvidence: {
+    networkRequests?: any[];
+    domMutations?: any[];
+    keyboardEvents?: any[];
+    apiCalls?: any[];
+    screenshotPaths?: string[];
+  } | null;
+  threatIntelResults: any[];
+  contactedUrlsReputation: any[];
+}
+
+export interface SandboxJob {
+  jobId: string;
+  extensionName: string;
+  status: BackendJobStatus;
+  submittedAt: string;
+  completedAt?: string;
+  failureCount: number;
+}

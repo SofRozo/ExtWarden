@@ -2,8 +2,9 @@ import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useExtensions } from '../hooks/useExtensions';
 import { useCurrentTab } from '../hooks/useCurrentTab';
+import { useSandboxData } from '../hooks/useSandboxData';
 import { openOptionsPage, storageGet } from '../utils/chromeApi';
-import type { CriticalZone, RiskLevel } from '../types';
+import type { CriticalZone, RiskLevel, BackendRiskLevel } from '../types';
 
 const DOT_COLORS: Record<RiskLevel, string> = {
   critical: 'bg-red-500',
@@ -13,7 +14,14 @@ const DOT_COLORS: Record<RiskLevel, string> = {
   safe:     'bg-emerald-400',
 };
 
-/** Convierte un hostname en una etiqueta legible para el popup */
+const BACKEND_DOT_COLORS: Record<BackendRiskLevel, string> = {
+  CRITICAL: 'bg-red-500',
+  HIGH:     'bg-orange-500',
+  MEDIUM:   'bg-amber-400',
+  LOW:      'bg-blue-500',
+  NONE:     'bg-emerald-400',
+};
+
 function formatDomain(hostname: string, lang: 'es' | 'en'): string {
   if (!hostname) return lang === 'es' ? 'Sin sitio activo' : 'No active site';
   if (hostname.startsWith('chrome-extension://') || hostname.startsWith('moz-extension://'))
@@ -30,9 +38,20 @@ function formatDomain(hostname: string, lang: 'es' | 'en'): string {
 }
 
 function matchesZone(hostname: string, zone: CriticalZone): boolean {
-  return zone.patterns.some(p =>
-    hostname.includes(p.replace('*.', '').replace(/^https?:\/\//, ''))
-  );
+  return zone.patterns.some(p => {
+    const clean = p
+      .replace(/^https?:\/\//, '')
+      .split('/')[0]
+      .split(':')[0]
+      .toLowerCase();
+    const host = hostname.toLowerCase();
+    if (clean.startsWith('*.')) {
+      const domain = clean.slice(2);
+      return host === domain || host.endsWith('.' + domain);
+    }
+    if (!clean.includes('.')) return host.includes(clean);
+    return host === clean || host.endsWith('.' + clean);
+  });
 }
 
 export default function Popup() {
@@ -40,6 +59,7 @@ export default function Popup() {
   const lang = (i18n.language?.startsWith('es') ? 'es' : 'en') as 'es' | 'en';
   const { extensions, loading: extsLoading } = useExtensions();
   const { url, loading: urlLoading } = useCurrentTab();
+  const { jobs, reports } = useSandboxData();
   const [zones, setZones] = useState<CriticalZone[]>([]);
 
   useEffect(() => {
@@ -55,8 +75,9 @@ export default function Popup() {
     () => extensions.filter(e => e.riskLevel === 'critical' || e.riskLevel === 'high').length,
     [extensions],
   );
+  void riskyCount;
 
-  const isSafe = !activeZone || riskyCount === 0;
+  const isSafe = !activeZone;
   const isLoading = extsLoading || urlLoading;
   const domainLabel = formatDomain(url, lang);
 
@@ -84,7 +105,6 @@ export default function Popup() {
       <div className="px-5 pb-3">
         <div className="group relative overflow-hidden rounded-2xl bg-white h-[100px]
           [box-shadow:0_0_0_1px_rgba(0,0,0,.03),0_2px_4px_rgba(0,0,0,.05),0_12px_24px_rgba(0,0,0,.05)]">
-          {/* Animated background */}
           <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full bg-brand-100/40 pointer-events-none">
             <div className="absolute inset-4 rounded-full bg-brand-200/30 animate-pulse" />
           </div>
@@ -109,27 +129,47 @@ export default function Popup() {
           {lang === 'es' ? 'Extensiones activas' : 'Active extensions'} ({extensions.length})
         </p>
         <div className="space-y-1.5 max-h-40 overflow-y-auto">
-          {extensions.map(ext => (
-            <div key={ext.id} className="flex items-center justify-between py-1.5">
-              <div className="flex items-center gap-2 min-w-0">
-                {ext.icons.length > 0 ? (
-                  <img
-                    src={ext.icons[ext.icons.length - 1].url}
-                    alt=""
-                    className="w-5 h-5 rounded flex-shrink-0"
-                  />
-                ) : (
-                  <div className="w-5 h-5 rounded bg-brand-100 flex items-center justify-center flex-shrink-0">
-                    <span className="text-[9px] font-bold text-brand-600">
-                      {ext.name.charAt(0)}
-                    </span>
-                  </div>
-                )}
-                <span className="text-[12px] text-gray-700 truncate">{ext.name}</span>
+          {extensions.map(ext => {
+            const job = jobs[ext.id];
+            const report = reports[ext.id];
+            const isCompleted = job?.status === 'completed' && !!report;
+            const isAnalyzing = !!job && job.status !== 'completed' && job.status !== 'failed';
+
+            return (
+              <div key={ext.id} className="flex items-center justify-between py-1.5">
+                <div className="flex items-center gap-2 min-w-0">
+                  {ext.icons.length > 0 ? (
+                    <img
+                      src={ext.icons[ext.icons.length - 1].url}
+                      alt=""
+                      className="w-5 h-5 rounded flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-5 h-5 rounded bg-brand-100 flex items-center justify-center flex-shrink-0">
+                      <span className="text-[9px] font-bold text-brand-600">
+                        {ext.name.charAt(0)}
+                      </span>
+                    </div>
+                  )}
+                  <span className="text-[12px] text-gray-700 truncate">{ext.name}</span>
+                </div>
+
+                {/* Risk indicator */}
+                <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+                  {isCompleted && report ? (
+                    <>
+                      <span className={`w-2 h-2 rounded-full ${BACKEND_DOT_COLORS[report.riskLevel]}`} />
+                      <span className="text-[9px] text-green-600 font-bold">✓</span>
+                    </>
+                  ) : isAnalyzing ? (
+                    <span className={`w-2 h-2 rounded-full animate-pulse ${DOT_COLORS[ext.riskLevel]}`} />
+                  ) : (
+                    <span className={`w-2 h-2 rounded-full ${DOT_COLORS[ext.riskLevel]}`} />
+                  )}
+                </div>
               </div>
-              <span className={`w-2 h-2 rounded-full flex-shrink-0 ml-2 ${DOT_COLORS[ext.riskLevel]}`} />
-            </div>
-          ))}
+            );
+          })}
           {extensions.length === 0 && (
             <p className="text-xs text-gray-300 py-2">
               {lang === 'es' ? 'Sin extensiones instaladas' : 'No extensions installed'}

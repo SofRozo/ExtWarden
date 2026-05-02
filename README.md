@@ -20,7 +20,7 @@ Extensión de Chrome que analiza los permisos de tus extensiones instaladas y te
 
 `R = Σ(Peso × Factor_Coherencia × f(H))` para permisos sensibles al host + `Σ(Peso × Factor_Coherencia)` para permisos estáticos.
 
-- 76 permisos de Chrome clasificados en 4 niveles de severidad
+- 69 permisos de Chrome clasificados en 4 niveles de severidad
 - 18 categorías de la Chrome Web Store con matrices de coherencia
 - Factor de alcance de host: 0.0 (ninguno) → 0.3 (activeTab) → 0.5 (específico) → 0.8 (wildcard) → 1.0 (<all_urls>)
 
@@ -42,12 +42,30 @@ npm run dev     # preview en navegador
 npm run build   # genera dist/ para cargar en Chrome
 ```
 
-## Cargar en Chrome
+## Cargar en Chrome (modo desarrollador)
 
 1. Abre `chrome://extensions/`
 2. Activa "Modo de desarrollador"
 3. Clic en "Cargar extensión sin empaquetar"
 4. Selecciona la carpeta `extension-ui/dist`
+
+## Comprimir para distribución
+
+Después de `npm run build`, comprime el contenido de `dist/` en un `.zip`.
+
+**Windows (PowerShell):**
+```powershell
+Compress-Archive -Force -Path dist\* -DestinationPath extwarden.zip
+```
+
+**macOS / Linux:**
+```bash
+cd dist && zip -r ../extwarden.zip . && cd ..
+```
+
+El archivo `extwarden.zip` resultante es el que se sube al [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole/) o se comparte para instalación manual.
+
+> **Instalación manual desde el zip:** extrae el `.zip`, luego sigue los pasos de "Cargar en Chrome" apuntando a la carpeta extraída.
 
 ## Stack
 

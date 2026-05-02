@@ -41,7 +41,7 @@ export const PERMISSION_WEIGHTS: Record<string, PermissionInfo> = {
   webRequestBlocking:                   { level: 'high', weight: 5, hostSensitive: true },
   userScripts:                          { level: 'high', weight: 5, hostSensitive: true },
   declarativeNetRequestWithHostAccess:  { level: 'high', weight: 5, hostSensitive: true },
-  /** Elevado de CRÍTICO a ALTO; ahora en conjunto S (Tabla tab:se_classification) */
+  /** Elevado de MEDIUM a ALTO; conjunto S (Tabla tab:se_classification) */
   desktopCapture:                       { level: 'high', weight: 5, hostSensitive: true },
 
   // ── ALTO / E ─────────────────────────────────────────────────────────────
