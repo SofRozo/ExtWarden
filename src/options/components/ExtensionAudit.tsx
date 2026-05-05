@@ -479,7 +479,6 @@ function ExtensionDrawer({
 
             </>
           )}
-        </div>
 
           {isFailed && !isAnalyzing && (
             <div className="text-center py-8 space-y-2">
