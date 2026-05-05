@@ -245,80 +245,82 @@ chrome.tabs.onRemoved.addListener(tabId => {
   reEnableExtensions(tabId);
 });
 
-chrome.management.onInstalled.addListener((ext) => { void (async () => {
-  if (ext.type !== 'extension' || ext.id === chrome.runtime.id) return;
+chrome.management.onInstalled.addListener((ext) => {
+  void (async () => {
+    if (ext.type !== 'extension' || ext.id === chrome.runtime.id) return;
 
-  const snapshots = await getFromStorage<Record<string, { version: string; permissions: string[]; hostPermissions: string[] }>>('extSnapshots', {});
-  const prev = snapshots[ext.id];
-  const perms: string[] = ext.permissions ?? [];
-  const hosts: string[] = ext.hostPermissions ?? [];
+    const snapshots = await getFromStorage<Record<string, { version: string; permissions: string[]; hostPermissions: string[] }>>('extSnapshots', {});
+    const prev = snapshots[ext.id];
+    const perms: string[] = ext.permissions ?? [];
+    const hosts: string[] = ext.hostPermissions ?? [];
 
-  if (!prev) {
-    // Primera vez que se ve: registrar como instalación
-    addActivity({
-      extensionId: ext.id,
-      extensionName: ext.name,
-      module: 'Sistema',
-      action: 'installed',
-      detail: `Nueva extensión: ${ext.name} v${ext.version}`,
-    });
-  } else if (prev.version !== ext.version) {
-    // Actualización: comparar permisos
-    const added = [
-      ...perms.filter(p => !prev.permissions.includes(p)),
-      ...hosts.filter(h => !prev.hostPermissions.includes(h)),
-    ];
-
-    if (added.length > 0) {
-      // Zero-trust: deshabilitar automáticamente
-      try { await chrome.management.setEnabled(ext.id, false); } catch { /* may lack permission */ }
-
+    if (!prev) {
+      // Primera vez que se ve: registrar como instalación
       addActivity({
         extensionId: ext.id,
         extensionName: ext.name,
-        module: 'Detección de Cambios',
-        action: 'warning',
-        detail: `Nuevos permisos tras actualización v${prev.version}→v${ext.version}: ${added.join(', ')}`,
+        module: 'Sistema',
+        action: 'installed',
+        detail: `Nueva extensión: ${ext.name} v${ext.version}`,
       });
+    } else if (prev.version !== ext.version) {
+      // Actualización: comparar permisos
+      const added = [
+        ...perms.filter(p => !prev.permissions.includes(p)),
+        ...hosts.filter(h => !prev.hostPermissions.includes(h)),
+      ];
 
-      // Guardar en changeHistory para que Updates.tsx lo muestre
-      const history = await getFromStorage<object[]>('changeHistory', []);
-      history.unshift({
-        id: `chg-${Date.now()}`,
-        timestamp: new Date().toISOString(),
-        extensionId: ext.id,
-        extensionName: ext.name,
-        type: 'new_permissions',
-        details: `v${prev.version} → v${ext.version}`,
-        newPermissions: added,
-        autoDisabled: true,
-      });
-      await setInStorage('changeHistory', history.slice(0, 100));
+      if (added.length > 0) {
+        // Zero-trust: deshabilitar automáticamente
+        try { await chrome.management.setEnabled(ext.id, false); } catch { /* may lack permission */ }
 
-      // Notificación nativa de Chrome
-      chrome.notifications.create(`update-${ext.id}`, {
-        type: 'basic',
-        iconUrl: 'icons/icon.png',
-        title: 'ExtWarden — Nuevos permisos detectados',
-        message: `"${ext.name}" solicitó nuevos permisos y fue deshabilitada. Revísala en el panel.`,
-        priority: 2,
-      });
-    } else {
-      addActivity({
-        extensionId: ext.id,
-        extensionName: ext.name,
-        module: 'Detección de Cambios',
-        action: 'allowed',
-        detail: `Actualización sin cambios de permisos: v${prev.version}→v${ext.version}`,
-      });
+        addActivity({
+          extensionId: ext.id,
+          extensionName: ext.name,
+          module: 'Detección de Cambios',
+          action: 'warning',
+          detail: `Nuevos permisos tras actualización v${prev.version}→v${ext.version}: ${added.join(', ')}`,
+        });
+
+        // Guardar en changeHistory para que Updates.tsx lo muestre
+        const history = await getFromStorage<object[]>('changeHistory', []);
+        history.unshift({
+          id: `chg-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          extensionId: ext.id,
+          extensionName: ext.name,
+          type: 'new_permissions',
+          details: `v${prev.version} → v${ext.version}`,
+          newPermissions: added,
+          autoDisabled: true,
+        });
+        await setInStorage('changeHistory', history.slice(0, 100));
+
+        // Notificación nativa de Chrome
+        chrome.notifications.create(`update-${ext.id}`, {
+          type: 'basic',
+          iconUrl: 'icons/icon.png',
+          title: 'ExtWarden — Nuevos permisos detectados',
+          message: `"${ext.name}" solicitó nuevos permisos y fue deshabilitada. Revísala en el panel.`,
+          priority: 2,
+        });
+      } else {
+        addActivity({
+          extensionId: ext.id,
+          extensionName: ext.name,
+          module: 'Detección de Cambios',
+          action: 'allowed',
+          detail: `Actualización sin cambios de permisos: v${prev.version}→v${ext.version}`,
+        });
+      }
     }
-  }
 
-  // Actualizar snapshot
-  snapshots[ext.id] = { version: ext.version, permissions: perms, hostPermissions: hosts };
-  await setInStorage('extSnapshots', snapshots);
+    // Actualizar snapshot
+    snapshots[ext.id] = { version: ext.version, permissions: perms, hostPermissions: hosts };
+    await setInStorage('extSnapshots', snapshots);
 
-})(); });
+  })();
+});
 
 chrome.management.onUninstalled.addListener(id => {
   addActivity({
@@ -420,67 +422,99 @@ function normalizeReport(raw: Record<string, unknown>): SandboxReportSW {
   const toStringArray = (v: unknown): string[] =>
     Array.isArray(v) ? (v as unknown[]).map(x => (typeof x === 'string' ? x : JSON.stringify(x))) : [];
 
-  const mapFinding = (f: Record<string, unknown>) => ({
-    category:    toStr(f.category ?? f.title),
-    severity:    toStr(f.severity).toUpperCase(),
-    description: toStr(f.description),
-    evidence:    f.evidence != null
-      ? (Array.isArray(f.evidence)
+  // Translation map for technical findings
+  const TRANSLATIONS: Record<string, string> = {
+    'fetch': 'Envío de datos a servidores externos',
+    'innerHTML': 'Modificación del contenido de las páginas web',
+    'chrome.storage.local.set': 'Guardado de datos persistentes',
+    'chrome.storage.local.get': 'Lectura de datos guardados',
+    'setInterval': 'Tareas repetitivas en segundo plano',
+    'chrome.tabs.executeScript': 'Ejecución de código dinámico en pestañas',
+    'chrome.cookies.get': 'Acceso a cookies de sesión',
+    'eval': 'Ejecución de código inseguro (eval)',
+  };
+
+  const mapFinding = (f: Record<string, unknown>) => {
+    const pattern = toStr(f.pattern ?? '');
+    const rawDesc = toStr(f.description ?? f.title ?? '');
+    const description = TRANSLATIONS[pattern] || rawDesc;
+
+    return {
+      category: toStr(f.category ?? f.title),
+      severity: toStr(f.severity).toUpperCase(),
+      description,
+      evidence: f.evidence != null
+        ? (Array.isArray(f.evidence)
           ? (f.evidence as unknown[]).map(toStr).join('\n')
           : toStr(f.evidence))
-      : undefined,
-  });
+        : undefined,
+      count: 1,
+    };
+  };
 
   const rawFindings = Array.isArray(raw.findings) ? raw.findings as Record<string, unknown>[] : [];
   const rawStaticFindings = Array.isArray(raw.staticFindings) ? raw.staticFindings as Record<string, unknown>[] : [];
+
+  // Deduplicate and group findings
+  const groupedFindingsMap = new Map<string, any>();
+  [...rawFindings, ...rawStaticFindings].forEach(rawF => {
+    const f = mapFinding(rawF);
+    const key = `${f.category}-${f.description}-${f.severity}`;
+    if (groupedFindingsMap.has(key)) {
+      const existing = groupedFindingsMap.get(key);
+      existing.count++;
+      // Append evidence if different
+      if (f.evidence && !existing.evidence.includes(f.evidence)) {
+        existing.evidence += `\n${f.evidence}`;
+      }
+    } else {
+      groupedFindingsMap.set(key, f);
+    }
+  });
+
+  const findings = Array.from(groupedFindingsMap.values());
+
   const rawPrivacyArr = Array.isArray(raw.privacyLabels) ? raw.privacyLabels as unknown[] : [];
-
-  const findings = [...rawFindings, ...rawStaticFindings].map(mapFinding);
-
   const privacyLabels = rawPrivacyArr.map(l => {
-    if (typeof l === 'object' && l !== null) {
-      return l; // Keep the whole object
-    } else if (typeof l === 'string') {
-      try {
-        return JSON.parse(l);
-      } catch (e) {
+    if (typeof l === 'object' && l !== null) return l;
+    if (typeof l === 'string') {
+      try { return JSON.parse(l); } catch (e) {
         return { title: 'Unknown Label', category: 'UNKNOWN', description: l, evidence: [], severity: 'LOW' };
       }
     }
     return { title: 'Unknown Label', category: 'UNKNOWN', description: toStr(l), evidence: [], severity: 'LOW' };
   });
 
-  // Backend may place contacted URLs in dynamicEvidence.networkRequests or contactedUrlsReputation
+  // Consolidate URLs
   const rawDynamic = (raw.dynamicEvidence ?? raw.dynamicAnalysis ?? {}) as Record<string, unknown>;
   const networkRequests = Array.isArray(rawDynamic.networkRequests) ? rawDynamic.networkRequests as unknown[] : [];
-  const rawReputation = Array.isArray(raw.contactedUrlsReputation) ? raw.contactedUrlsReputation as Record<string, unknown>[] : [];
-  
+
   const allUrls = [
     ...toStringArray(raw.contactedUrls),
     ...networkRequests.map(r => {
-        if (typeof r === 'string') return r;
-        if (typeof r === 'object' && r !== null) {
-          const req = r as Record<string, unknown>;
-          return toStr(req.url ?? req.host ?? req);
-        }
-        return '';
+      if (typeof r === 'string') return r;
+      if (typeof r === 'object' && r !== null) {
+        const req = r as Record<string, unknown>;
+        return toStr(req.url ?? req.host ?? req);
+      }
+      return '';
     }),
-    ...rawReputation.map(r => toStr(r.url ?? r.hostname))
+    ...(Array.isArray(raw.threatIntelResults) ? (raw.threatIntelResults as any[]).map(t => t.domain) : [])
   ].filter(Boolean);
-  
+
   const contactedUrls = [...new Set(allUrls)];
 
   return {
-    jobId:            toStr(raw.jobId),
+    jobId: toStr(raw.jobId),
     riskLevel,
-    confidence:       (raw.confidence ?? 0) as number,
-    recommendation:   toStr(raw.recommendation ?? 'NO_SIGNIFICANT_RISKS'),
+    confidence: (raw.confidence ?? 0) as number,
+    recommendation: toStr(raw.recommendation ?? 'NO_SIGNIFICANT_RISKS'),
     findings,
     contactedUrls,
     abusedPermissions: toStringArray(raw.abusedPermissions),
-    privacyLabels:    privacyLabels as any,
-    staticFindings:   Array.isArray(raw.staticFindings) ? raw.staticFindings : [],
-    dynamicEvidence:  (raw.dynamicEvidence ?? raw.dynamicAnalysis ?? { networkRequests: [], domMutations: [], keyboardEvents: [], apiCalls: [], screenshotPaths: [] }) as SandboxReportSW['dynamicEvidence'],
+    privacyLabels: privacyLabels as any,
+    staticFindings: Array.isArray(raw.staticFindings) ? raw.staticFindings : [],
+    dynamicEvidence: (raw.dynamicEvidence ?? raw.dynamicAnalysis ?? { networkRequests: [], domMutations: [], keyboardEvents: [], apiCalls: [], screenshotPaths: [] }) as SandboxReportSW['dynamicEvidence'],
     threatIntelResults: Array.isArray(raw.threatIntelResults) ? raw.threatIntelResults : [],
     contactedUrlsReputation: Array.isArray(raw.contactedUrlsReputation) ? raw.contactedUrlsReputation : [],
   };

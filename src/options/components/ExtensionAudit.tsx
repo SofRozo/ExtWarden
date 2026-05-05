@@ -142,15 +142,24 @@ function FindingCard({ finding }: { finding: BackendFinding }) {
     : undefined;
 
   return (
-    <div className="border border-surface-100 rounded-xl p-3 space-y-1.5">
+    <div className="border border-surface-100 rounded-xl p-3 space-y-1.5 bg-surface-50/30">
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-start gap-2">
-          <span className="flex-shrink-0 mt-0.5 text-gray-500">
+          <span className="flex-shrink-0 mt-0.5 text-gray-400">
             {categoryIcons[category] ?? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>}
           </span>
-          <span className="text-sm text-gray-700 leading-snug">{description}</span>
+          <div className="flex flex-col">
+            <span className="text-sm font-medium text-gray-700 leading-snug">
+              {description}
+              {(finding as any).count > 1 && (
+                <span className="ml-1.5 text-brand-600 font-bold">
+                  (x{(finding as any).count})
+                </span>
+              )}
+            </span>
+          </div>
         </div>
-        <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold flex-shrink-0 ${severityColor[severity] ?? 'bg-gray-100 text-gray-600'}`}>
+        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold flex-shrink-0 ${severityColor[severity] ?? 'bg-gray-100 text-gray-600'}`}>
           {severity}
         </span>
       </div>
