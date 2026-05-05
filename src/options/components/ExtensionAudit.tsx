@@ -151,11 +151,6 @@ function FindingCard({ finding }: { finding: BackendFinding }) {
           <div className="flex flex-col">
             <span className="text-sm font-medium text-gray-700 leading-snug">
               {description}
-              {(finding as any).count > 1 && (
-                <span className="ml-1.5 text-brand-600 font-bold">
-                  (x{(finding as any).count})
-                </span>
-              )}
             </span>
           </div>
         </div>
@@ -394,6 +389,38 @@ function ExtensionDrawer({
                   </div>
                 )}
               </section>
+
+              {/* Stress Test Results */}
+              {(report as any).testResults && (report as any).testResults.length > 0 && (
+                <section className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+                  <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                    Resultados de Pruebas de Estrés
+                  </h4>
+                  <div className="space-y-3">
+                    {(report as any).testResults.map((test: any, i: number) => (
+                      <div key={i} className="bg-white border border-slate-100 rounded-xl p-3 shadow-sm">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-bold text-slate-800">{test.name}</span>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-black uppercase ${test.status === 'FAILED' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                            {test.status === 'FAILED' ? 'FALLÓ' : 'PASÓ'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-600 mb-2 leading-relaxed">{test.description}</p>
+                        {test.findings && test.findings.length > 0 && (
+                          <div className="bg-slate-50 rounded-lg p-2 space-y-1">
+                            {test.findings.map((f: string, fi: number) => (
+                              <div key={fi} className="text-[10px] text-slate-500 font-mono break-all leading-tight border-l-2 border-slate-200 pl-2">
+                                {f}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
 
               {/* Contacted URLs */}
               <section>

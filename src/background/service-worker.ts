@@ -396,6 +396,7 @@ interface SandboxReportSW {
   dynamicEvidence: { networkRequests?: any[]; domMutations?: any[]; keyboardEvents?: any[]; apiCalls?: any[]; screenshotPaths?: string[] } | null;
   threatIntelResults: any[];
   contactedUrlsReputation: any[];
+  testResults: any[];
 }
 
 function fetchWithTimeout(url: string, init?: RequestInit): Promise<Response> {
@@ -437,12 +438,18 @@ function normalizeReport(raw: Record<string, unknown>): SandboxReportSW {
     'Registers keyboard event listeners': 'Vigila lo que escribes con el teclado',
     'Intercepts form submissions': 'Captura la información que envías en formularios',
     'Monitors input events': 'Observa lo que escribes en tiempo real',
+    'honeypot_hit': '¡ALERTA! Robo de datos financieros detectado',
+    'session_theft': 'Intento de robo de sesión activa',
+    'Exfiltración de Datos Financieros': '¡CRÍTICO! La extensión robó datos del banco falso',
+    'Robo de Sesión Detectado': 'La extensión intentó acceder a tus cuentas reales',
   };
 
   const mapFinding = (f: Record<string, unknown>) => {
     const pattern = toStr(f.pattern ?? '');
     const rawDesc = toStr(f.description ?? f.title ?? '');
-    const description = TRANSLATIONS[pattern] || rawDesc;
+
+    // Check both pattern and raw description for translations
+    const description = TRANSLATIONS[pattern] || TRANSLATIONS[rawDesc] || rawDesc;
 
     return {
       category: toStr(f.category ?? f.title),
@@ -481,13 +488,22 @@ function normalizeReport(raw: Record<string, unknown>): SandboxReportSW {
 
   const rawPrivacyArr = Array.isArray(raw.privacyLabels) ? raw.privacyLabels as unknown[] : [];
   const privacyLabels = rawPrivacyArr.map(l => {
-    if (typeof l === 'object' && l !== null) return l;
-    if (typeof l === 'string') {
-      try { return JSON.parse(l); } catch (e) {
-        return { title: 'Unknown Label', category: 'UNKNOWN', description: l, evidence: [], severity: 'LOW' };
+    let labelObj: any;
+    if (typeof l === 'object' && l !== null) {
+      labelObj = l;
+    } else if (typeof l === 'string') {
+      try { labelObj = JSON.parse(l); } catch (e) {
+        labelObj = { title: 'Unknown Label', category: 'UNKNOWN', description: l, evidence: [], severity: 'LOW' };
       }
+    } else {
+      labelObj = { title: 'Unknown Label', category: 'UNKNOWN', description: toStr(l), evidence: [], severity: 'LOW' };
     }
-    return { title: 'Unknown Label', category: 'UNKNOWN', description: toStr(l), evidence: [], severity: 'LOW' };
+
+    // Apply translations to title and description
+    labelObj.title = TRANSLATIONS[labelObj.title] || labelObj.title;
+    labelObj.description = TRANSLATIONS[labelObj.description] || labelObj.description;
+
+    return labelObj;
   });
 
   // Consolidate URLs from all sources, including findings evidence
@@ -533,6 +549,7 @@ function normalizeReport(raw: Record<string, unknown>): SandboxReportSW {
     dynamicEvidence: (raw.dynamicEvidence ?? raw.dynamicAnalysis ?? { networkRequests: [], domMutations: [], keyboardEvents: [], apiCalls: [], screenshotPaths: [] }) as SandboxReportSW['dynamicEvidence'],
     threatIntelResults: Array.isArray(raw.threatIntelResults) ? raw.threatIntelResults : [],
     contactedUrlsReputation: Array.isArray(raw.contactedUrlsReputation) ? raw.contactedUrlsReputation : [],
+    testResults: Array.isArray((raw as any).testResults) ? (raw as any).testResults : [],
   };
 }
 
