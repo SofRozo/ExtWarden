@@ -477,34 +477,9 @@ function ExtensionDrawer({
                 )}
               </section>
 
-              {/* Dynamic Evidence Screenshots */}
-              {report.dynamicEvidence?.screenshotPaths && report.dynamicEvidence.screenshotPaths.length > 0 && (
-                <section>
-                  <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">
-                    Capturas de Pantalla (Evidencia Dinámica)
-                  </h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    {report.dynamicEvidence.screenshotPaths.map((path, i) => {
-                      const pathParts = path.split('/');
-                      const filename = pathParts[pathParts.length - 1];
-                      return (
-                        <div key={i} className="border border-surface-100 rounded overflow-hidden">
-                          <img
-                            src={`http://localhost:3000/screenshot/${report.jobId}/${filename}`}
-                            alt={`Evidencia ${i + 1}`}
-                            className="w-full h-auto"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).style.display = 'none';
-                            }}
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
-                </section>
-              )}
             </>
           )}
+        </div>
 
           {isFailed && !isAnalyzing && (
             <div className="text-center py-8 space-y-2">
