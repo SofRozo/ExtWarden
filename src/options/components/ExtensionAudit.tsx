@@ -310,28 +310,28 @@ function ExtensionDrawer({
     <>
       {open && (
         <div
-          className="fixed inset-0 bg-black/20 z-40 transition-opacity"
+          className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-40 transition-opacity"
           onClick={onClose}
         />
       )}
       <div
-        className={`fixed top-0 right-0 h-full w-[420px] bg-white shadow-2xl z-50 flex flex-col
-          transform transition-transform duration-300 ease-in-out
+        className={`fixed top-0 right-0 h-full w-[550px] bg-white shadow-[-8px_0_24px_rgba(0,0,0,0.1)] z-50 flex flex-col
+          transform transition-transform duration-400 ease-out
           ${open ? 'translate-x-0' : 'translate-x-full'}`}
       >
         {/* Header */}
-        <div className="flex items-start justify-between p-6 border-b border-surface-100 flex-shrink-0">
-          <div className="flex items-center gap-3 min-w-0">
+        <div className="flex items-start justify-between p-6 border-b border-surface-100 bg-white/80 backdrop-blur-md sticky top-0 z-10 flex-shrink-0">
+          <div className="flex items-center gap-4 min-w-0">
             {ext.icons.length > 0 ? (
-              <img src={ext.icons[ext.icons.length - 1].url} alt="" className="w-10 h-10 rounded-xl flex-shrink-0" />
+              <img src={ext.icons[ext.icons.length - 1].url} alt="" className="w-12 h-12 rounded-2xl shadow-sm flex-shrink-0" />
             ) : (
-              <div className="w-10 h-10 rounded-xl bg-brand-100 flex items-center justify-center flex-shrink-0">
-                <span className="text-sm font-bold text-brand-600">{ext.name.charAt(0)}</span>
+              <div className="w-12 h-12 rounded-2xl bg-brand-100 flex items-center justify-center flex-shrink-0 shadow-sm">
+                <span className="text-lg font-bold text-brand-600">{ext.name.charAt(0)}</span>
               </div>
             )}
             <div className="min-w-0">
-              <p className="text-sm font-bold text-gray-800 truncate">{ext.name}</p>
-              <p className="text-xs text-gray-400">v{ext.version}</p>
+              <h2 className="text-base font-bold text-gray-900 truncate pr-4">{ext.name}</h2>
+              <p className="text-xs text-gray-400 font-medium tracking-wide">VERSIÓN {ext.version}</p>
             </div>
           </div>
           <button

@@ -422,16 +422,21 @@ function normalizeReport(raw: Record<string, unknown>): SandboxReportSW {
   const toStringArray = (v: unknown): string[] =>
     Array.isArray(v) ? (v as unknown[]).map(x => (typeof x === 'string' ? x : JSON.stringify(x))) : [];
 
-  // Translation map for technical findings
+  // Translation map for technical findings (User-friendly / 'Mom-proof')
   const TRANSLATIONS: Record<string, string> = {
-    'fetch': 'Envío de datos a servidores externos',
-    'innerHTML': 'Modificación del contenido de las páginas web',
-    'chrome.storage.local.set': 'Guardado de datos persistentes',
-    'chrome.storage.local.get': 'Lectura de datos guardados',
-    'setInterval': 'Tareas repetitivas en segundo plano',
-    'chrome.tabs.executeScript': 'Ejecución de código dinámico en pestañas',
-    'chrome.cookies.get': 'Acceso a cookies de sesión',
-    'eval': 'Ejecución de código inseguro (eval)',
+    'fetch': 'Envía tu información a servidores externos',
+    'innerHTML': 'Puede cambiar lo que ves en las páginas web (ej: poner anuncios o formularios falsos)',
+    'chrome.storage.local.set': 'Guarda información de forma permanente en tu navegador',
+    'chrome.storage.local.get': 'Lee información que guardó anteriormente',
+    'setInterval': 'Realiza acciones en segundo plano aunque no la estés usando',
+    'chrome.tabs.executeScript': 'Intenta controlar o leer lo que haces en otras pestañas',
+    'chrome.cookies.get': 'Intenta acceder a tus sesiones iniciadas (cookies)',
+    'eval': 'Ejecuta código de forma insegura y oculta',
+    'keyboard': 'Monitorea todo lo que escribes con el teclado (posible robo de contraseñas)',
+    'Reads page text content': 'Puede leer todo lo que ves en pantalla (incluyendo contraseñas)',
+    'Registers keyboard event listeners': 'Vigila lo que escribes con el teclado',
+    'Intercepts form submissions': 'Captura la información que envías en formularios',
+    'Monitors input events': 'Observa lo que escribes en tiempo real',
   };
 
   const mapFinding = (f: Record<string, unknown>) => {
@@ -485,9 +490,19 @@ function normalizeReport(raw: Record<string, unknown>): SandboxReportSW {
     return { title: 'Unknown Label', category: 'UNKNOWN', description: toStr(l), evidence: [], severity: 'LOW' };
   });
 
-  // Consolidate URLs
+  // Consolidate URLs from all sources, including findings evidence
   const rawDynamic = (raw.dynamicEvidence ?? raw.dynamicAnalysis ?? {}) as Record<string, unknown>;
   const networkRequests = Array.isArray(rawDynamic.networkRequests) ? rawDynamic.networkRequests as unknown[] : [];
+
+  const evidenceTexts = findings.map(f => f.evidence).filter(Boolean).join(' ');
+  const urlRegex = /(?:https?:\/\/)?(?:www\.)?([a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)/gi;
+  const foundInEvidence: string[] = [];
+  let match;
+  while ((match = urlRegex.exec(evidenceTexts)) !== null) {
+    if (match[1] && match[1].includes('.') && !match[1].endsWith('.js')) {
+      foundInEvidence.push(match[1]);
+    }
+  }
 
   const allUrls = [
     ...toStringArray(raw.contactedUrls),
@@ -499,7 +514,8 @@ function normalizeReport(raw: Record<string, unknown>): SandboxReportSW {
       }
       return '';
     }),
-    ...(Array.isArray(raw.threatIntelResults) ? (raw.threatIntelResults as any[]).map(t => t.domain) : [])
+    ...(Array.isArray(raw.threatIntelResults) ? (raw.threatIntelResults as any[]).map(t => t.domain) : []),
+    ...foundInEvidence
   ].filter(Boolean);
 
   const contactedUrls = [...new Set(allUrls)];
