@@ -79,6 +79,9 @@ export interface SandboxReport {
   jobId: string;
   riskLevel: BackendRiskLevel;
   confidence: number;
+  score1: number;
+  score2: number;
+  score3: number;
   recommendation: BackendRecommendation;
   findings: BackendFinding[];
   contactedUrls: string[];

@@ -269,6 +269,58 @@ function PrivacyLabelCard({ label }: { label: BackendPrivacyLabel | string | any
   );
 }
 
+// ── Score Evolution (Risk Journey) ──
+
+function ScoreEvolution({ s1, s2, s3 }: { s1: number; s2: number; s3: number }) {
+  const getScoreColor = (s: number) => {
+    if (s >= 75) return 'text-red-600 bg-red-100 border-red-200';
+    if (s >= 30) return 'text-amber-600 bg-amber-100 border-amber-200';
+    return 'text-green-600 bg-green-100 border-green-200';
+  };
+
+  return (
+    <div className="bg-white border border-surface-100 rounded-2xl p-4 shadow-sm">
+      <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20v-6M6 20V10M18 20V4"/></svg>
+        Evolución del Riesgo (Journey)
+      </h4>
+      <div className="flex items-center justify-between relative px-2">
+        <div className="absolute top-5 left-10 right-10 h-0.5 bg-gray-100 -z-0" />
+        
+        <div className="relative z-10 flex flex-col items-center gap-2 group">
+          <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center font-bold text-sm transition-all duration-300 group-hover:scale-110 ${getScoreColor(s1)}`}>
+            {s1}
+          </div>
+          <div className="text-center">
+            <p className="text-[10px] font-bold text-gray-800 uppercase tracking-tighter leading-none">Superficie</p>
+            <p className="text-[9px] text-gray-400 leading-tight mt-1 max-w-[80px]">Permisos declarados</p>
+          </div>
+        </div>
+
+        <div className="relative z-10 flex flex-col items-center gap-2 group">
+          <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center font-bold text-sm transition-all duration-300 group-hover:scale-110 ${getScoreColor(s2)}`}>
+            {s2}
+          </div>
+          <div className="text-center">
+            <p className="text-[10px] font-bold text-gray-800 uppercase tracking-tighter leading-none">Contexto</p>
+            <p className="text-[9px] text-gray-400 leading-tight mt-1 max-w-[80px]">Análisis de Intención</p>
+          </div>
+        </div>
+
+        <div className="relative z-10 flex flex-col items-center gap-2 group">
+          <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center font-bold text-sm transition-all duration-300 group-hover:scale-110 ${getScoreColor(s3)}`}>
+            {s3}
+          </div>
+          <div className="text-center">
+            <p className="text-[10px] font-bold text-gray-800 uppercase tracking-tighter leading-none">Real</p>
+            <p className="text-[9px] text-gray-400 leading-tight mt-1 max-w-[80px]">Dinámico (Agente 4)</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Skeleton while analyzing ──
 
 function SkeletonAnalysis() {
@@ -343,6 +395,9 @@ function ExtensionDrawer({
 
           {isCompleted && report && (
             <>
+              {/* Risk Journey / Scores */}
+              <ScoreEvolution s1={report.score1} s2={report.score2} s3={report.score3} />
+
               {/* Risk + recommendation */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2 flex-wrap">
