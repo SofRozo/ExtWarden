@@ -43,10 +43,11 @@ const backendRiskDot: Record<BackendRiskLevel, string> = {
 const iconColors = ['#7c3aed', '#3B82F6', '#F59E0B', '#10B981', '#EF4444', '#EC4899', '#6366F1', '#14B8A6'];
 
 const recommendationLabels: Record<string, string> = {
-  UNINSTALL_IMMEDIATELY: 'Desinstalar inmediatamente',
-  REVIEW_BEFORE_USE:     'Revisar antes de usar',
-  MONITOR:               'Monitorear',
-  NO_SIGNIFICANT_RISKS:  'Sin riesgos significativos',
+  UNINSTALL_IMMEDIATELY:  'Desinstalar inmediatamente',
+  UNINSTALL_RECOMMENDED:  'Se recomienda desinstalar',
+  REVIEW_BEFORE_USE:      'Revisar antes de usar',
+  MONITOR:                'Monitorear',
+  NO_SIGNIFICANT_RISKS:   'Sin riesgos significativos',
 };
 
 const categoryIcons: Record<string, ReactNode> = {

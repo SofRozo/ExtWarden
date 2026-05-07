@@ -49,6 +49,7 @@ export type BackendJobStatus =
   | 'failed';
 export type BackendRecommendation =
   | 'UNINSTALL_IMMEDIATELY'
+  | 'UNINSTALL_RECOMMENDED'
   | 'REVIEW_BEFORE_USE'
   | 'MONITOR'
   | 'NO_SIGNIFICANT_RISKS';
