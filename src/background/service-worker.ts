@@ -413,6 +413,7 @@ interface SandboxReportSW {
     resultado2_unknown: any[];
     resultado_dinamico: any[];
   };
+  navegacionDominios: any[];
   /** Derived from the verdicted findings so existing UI badges keep working. */
   riskLevel: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE';
 }
@@ -505,9 +506,14 @@ function normalizeReport(raw: Record<string, unknown>): SandboxReportSW {
     riskLevel = 'NONE';
   }
 
+  const navegacionDominios = Array.isArray(raw.navegacionDominios)
+    ? (raw.navegacionDominios as any[])
+    : [];
+
   return {
     jobId: toStr(raw.jobId),
     agente1,
+    navegacionDominios,
     dominios_contactados_prioritarios: toStringArray(
       raw.dominios_contactados_prioritarios,
     ),

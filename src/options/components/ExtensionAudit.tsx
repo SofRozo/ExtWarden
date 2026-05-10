@@ -10,6 +10,8 @@ import type {
   SandboxJob,
   SandboxReport,
   BackendRiskLevel,
+  DomainNavigationLog,
+  AgentStep,
 } from '../../types';
 
 const ITEMS_PER_PAGE = 4;
@@ -130,6 +132,100 @@ function NarrativeFinding({ text, kind }: { text: string; kind: 'static' | 'dyna
         )}
       </span>
       <p className="text-sm text-gray-700 leading-snug">{text}</p>
+    </div>
+  );
+}
+
+// ── Agent timeline (per priority domain) ──
+
+const NAVIGATOR_LABEL: Record<DomainNavigationLog['navigatorUsed'], string> = {
+  stagehand: 'Stagehand',
+  intelligent_navigator: 'IntelligentNavigator',
+};
+
+const NAVIGATOR_COLOR: Record<DomainNavigationLog['navigatorUsed'], string> = {
+  stagehand: 'bg-purple-100 text-purple-700',
+  intelligent_navigator: 'bg-emerald-100 text-emerald-700',
+};
+
+const RESULT_COLOR: Record<string, string> = {
+  success: 'text-emerald-700',
+  failed: 'text-red-700',
+  'no-op': 'text-gray-400',
+};
+
+function AgentStepRow({ step }: { step: AgentStep }) {
+  return (
+    <div className="border-l-2 border-surface-200 pl-3 pb-2 relative">
+      <span className="absolute -left-[5px] top-0 w-2 h-2 rounded-full bg-brand-400"></span>
+      <div className="flex items-baseline gap-2 flex-wrap">
+        <span className="text-[10px] font-bold uppercase text-gray-500">
+          paso {step.step}
+        </span>
+        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-surface-100 text-gray-600">
+          {step.action}
+        </span>
+        <span
+          className={`text-[10px] font-semibold ${RESULT_COLOR[step.result] ?? 'text-gray-500'}`}
+        >
+          {step.result}
+        </span>
+      </div>
+      {step.target && (
+        <p className="text-[11px] text-gray-500 font-mono mt-0.5 break-all">
+          target: {step.target}
+        </p>
+      )}
+      <p className="text-[12px] text-gray-700 mt-1">{step.observation}</p>
+      <p className="text-[11px] text-gray-400 mt-0.5 italic">razón: {step.reasoning}</p>
+    </div>
+  );
+}
+
+function DomainNavigationCard({ nav }: { nav: DomainNavigationLog }) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className="border border-surface-100 rounded-xl p-3 bg-white">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-sm font-semibold text-gray-700 truncate">
+            {nav.domain}
+          </span>
+          <span
+            className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${NAVIGATOR_COLOR[nav.navigatorUsed]}`}
+          >
+            {NAVIGATOR_LABEL[nav.navigatorUsed]}
+          </span>
+          {nav.honeypotSessionUsed && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium">
+              honeypot ON
+            </span>
+          )}
+        </div>
+        <span className="text-[10px] text-gray-400">
+          {nav.agentSteps.length} paso(s) · {nav.actionsPerformed.length} acción(es)
+        </span>
+      </div>
+      {nav.error && (
+        <p className="text-[11px] text-red-600 mt-1 italic">error: {nav.error}</p>
+      )}
+      {nav.agentSteps.length > 0 && (
+        <>
+          <button
+            onClick={() => setExpanded((v) => !v)}
+            className="text-[11px] text-brand-600 hover:text-brand-700 font-medium mt-2"
+          >
+            {expanded ? 'Ocultar pasos' : 'Ver pasos del agente →'}
+          </button>
+          {expanded && (
+            <div className="mt-3 space-y-2">
+              {nav.agentSteps.map((s, i) => (
+                <AgentStepRow key={i} step={s} />
+              ))}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -337,6 +433,20 @@ function ExtensionDrawer({
                   </div>
                 )}
               </section>
+
+              {/* Agent timeline — what the navigator did per priority domain */}
+              {report.navegacionDominios && report.navegacionDominios.length > 0 && (
+                <section>
+                  <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">
+                    Pasos del agente por dominio
+                  </h4>
+                  <div className="space-y-3">
+                    {report.navegacionDominios.map((nav, i) => (
+                      <DomainNavigationCard key={i} nav={nav} />
+                    ))}
+                  </div>
+                </section>
+              )}
             </>
           )}
 

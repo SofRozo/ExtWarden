@@ -122,6 +122,27 @@ export interface DynamicVerdictedFinding {
   razon: string;
 }
 
+/** Per-step agent decision exposed by the backend for live inspection. */
+export interface AgentStep {
+  step: number;
+  observation: string;
+  action: string;
+  target?: string;
+  reasoning: string;
+  result: string;
+  timestamp: number;
+}
+
+export interface DomainNavigationLog {
+  domain: string;
+  url: string;
+  navigatorUsed: 'stagehand' | 'intelligent_navigator';
+  honeypotSessionUsed: boolean;
+  agentSteps: AgentStep[];
+  actionsPerformed: string[];
+  error?: string;
+}
+
 export interface Agent1Output {
   proposito: string;
   categoria: string;
@@ -156,6 +177,8 @@ export interface SandboxReport {
     resultado2_unknown: VerdictedDomainFinding[];
     resultado_dinamico: DynamicVerdictedFinding[];
   };
+  /** Step-by-step agent decisions per priority domain — used to inspect what the LLM did. */
+  navegacionDominios?: DomainNavigationLog[];
   /** Derived in normalizeReport so badges/stats stay coloured. */
   riskLevel: BackendRiskLevel;
 }
