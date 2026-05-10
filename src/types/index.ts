@@ -57,6 +57,11 @@ export type FileType =
   | 'content_script'
   | 'background'
   | 'popup'
+  | 'options_ui'
+  | 'devtools'
+  | 'sandbox'
+  | 'override_page'
+  | 'side_panel'
   | 'library'
   | 'unknown'
   | 'manifest';
