@@ -9,9 +9,7 @@ import type {
   InstalledExtension,
   SandboxJob,
   SandboxReport,
-  BackendFinding,
   BackendRiskLevel,
-  BackendPrivacyLabel,
 } from '../../types';
 
 const ITEMS_PER_PAGE = 4;
@@ -40,24 +38,14 @@ const backendRiskDot: Record<BackendRiskLevel, string> = {
   NONE:     '#16A34A',
 };
 
+const initialRiskLabel: Record<string, string> = {
+  bajo: 'Bajo',
+  medio: 'Medio',
+  alto: 'Alto',
+  critico: 'Crítico',
+};
+
 const iconColors = ['#7c3aed', '#3B82F6', '#F59E0B', '#10B981', '#EF4444', '#EC4899', '#6366F1', '#14B8A6'];
-
-const recommendationLabels: Record<string, string> = {
-  UNINSTALL_IMMEDIATELY:  'Desinstalar inmediatamente',
-  UNINSTALL_RECOMMENDED:  'Se recomienda desinstalar',
-  REVIEW_BEFORE_USE:      'Revisar antes de usar',
-  MONITOR:                'Monitorear',
-  NO_SIGNIFICANT_RISKS:   'Sin riesgos significativos',
-};
-
-const categoryIcons: Record<string, ReactNode> = {
-  KEYLOGGER:        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 6h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"/><path d="M6 10h.01"/><path d="M10 10h.01"/><path d="M14 10h.01"/><path d="M18 10h.01"/><path d="M6 14h.01"/><path d="M18 14h.01"/><path d="M10 14h4"/></svg>,
-  DATA_THEFT:       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>,
-  INJECTION:        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m18 2 4 4"/><path d="m17 7 3-3"/><path d="M19 9 8.7 19.3c-1 1-2.5 1-3.4 0l-.6-.6c-1-1-1-2.4 0-3.4L15 5"/><path d="m9 11 4 4"/><path d="m5 19-3 3"/><path d="m14 4 6 6"/></svg>,
-  EXFILTRATION:     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>,
-  PERSISTENCE:      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,
-  DOMAIN_TARGETING: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>,
-};
 
 // ── Bento Card ──
 
@@ -124,200 +112,76 @@ function AnalyzedGlow() {
   );
 }
 
-// ── Finding card ──
-
-function FindingCard({ finding }: { finding: BackendFinding }) {
-  const [showEvidence, setShowEvidence] = useState(false);
-  const severityColor: Record<string, string> = {
-    CRITICAL: 'bg-red-100 text-red-700',
-    HIGH:     'bg-orange-100 text-orange-700',
-    MEDIUM:   'bg-amber-100 text-amber-700',
-    LOW:      'bg-blue-100 text-blue-700',
-  };
-  const category = String((finding as unknown as Record<string, unknown>).category ?? finding.category ?? '');
-  const severity = String((finding as unknown as Record<string, unknown>).severity ?? finding.severity ?? '');
-  const description = String((finding as unknown as Record<string, unknown>).description ?? finding.description ?? '');
-  const rawEvidence = (finding as unknown as Record<string, unknown>).evidence ?? finding.evidence;
-  const evidence = rawEvidence != null
-    ? (typeof rawEvidence === 'object' ? JSON.stringify(rawEvidence, null, 2) : String(rawEvidence))
-    : undefined;
-
+// ── Narrative finding card ──
+// Renders one of the new narrative strings emitted by the backend report
+// (hallazgos_estaticos_positivos / hallazgos_dinamicos_positivos).
+function NarrativeFinding({ text, kind }: { text: string; kind: 'static' | 'dynamic' }) {
   return (
-    <div className="border border-surface-100 rounded-xl p-3 space-y-1.5 bg-surface-50/30">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-start gap-2">
-          <span className="flex-shrink-0 mt-0.5 text-gray-400">
-            {categoryIcons[category] ?? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>}
-          </span>
-          <div className="flex flex-col">
-            <span className="text-sm font-medium text-gray-700 leading-snug">
-              {description}
-            </span>
-          </div>
-        </div>
-        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold flex-shrink-0 ${severityColor[severity] ?? 'bg-gray-100 text-gray-600'}`}>
-          {severity}
-        </span>
-      </div>
-      {evidence && (
-        <>
-          <button
-            onClick={() => setShowEvidence(v => !v)}
-            className="text-xs text-brand-600 hover:text-brand-700 font-medium"
-          >
-            {showEvidence ? 'Ocultar evidencia' : 'Ver evidencia'}
-          </button>
-          {showEvidence && (
-            <pre className="text-[10px] bg-surface-50 border border-surface-100 rounded-lg p-2 overflow-x-auto text-gray-600 whitespace-pre-wrap break-all">
-              {evidence}
-            </pre>
-          )}
-        </>
-      )}
+    <div className="border border-surface-100 rounded-xl p-3 flex gap-2.5 items-start">
+      <span
+        className={`mt-0.5 flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center ${
+          kind === 'dynamic' ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600'
+        }`}
+      >
+        {kind === 'dynamic' ? (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+        ) : (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        )}
+      </span>
+      <p className="text-sm text-gray-700 leading-snug">{text}</p>
     </div>
   );
 }
 
-// ── Privacy Label Card ──
+// ── Agent 1 summary block ──
 
-function PrivacyLabelCard({ label }: { label: BackendPrivacyLabel | string | any }) {
-  const [showEvidence, setShowEvidence] = useState(false);
-  
-  let parsedLabel: BackendPrivacyLabel;
-  if (typeof label === 'string') {
-    try {
-      parsedLabel = JSON.parse(label);
-    } catch (e) {
-      parsedLabel = { title: 'Unknown Label', category: 'UNKNOWN', description: label, evidence: [], severity: 'LOW' } as BackendPrivacyLabel;
-    }
-  } else {
-    parsedLabel = label as BackendPrivacyLabel;
-  }
-
-  const severityStyles: Record<string, string> = {
-    critical: 'bg-red-50 text-red-700',
-    high:     'bg-orange-50 text-orange-700',
-    medium:   'bg-amber-50 text-amber-700',
-    low:      'bg-blue-50 text-blue-700',
-    CRITICAL: 'bg-red-50 text-red-700',
-    HIGH:     'bg-orange-50 text-orange-700',
-    MEDIUM:   'bg-amber-50 text-amber-700',
-    LOW:      'bg-blue-50 text-blue-700',
-  };
-
-  const currentSeverityStyle = severityStyles[parsedLabel.severity] || 'bg-surface-50 text-gray-600';
-
-  const categoryLower = (parsedLabel.category || '').toLowerCase();
-  let Icon = (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-  );
-  if (categoryLower.includes('security') || categoryLower.includes('shield')) {
-    Icon = <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>;
-  } else if (categoryLower.includes('monitor') || categoryLower.includes('eye') || categoryLower.includes('tracking')) {
-    Icon = <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>;
-  } else if (categoryLower.includes('data') || categoryLower.includes('storage') || categoryLower.includes('collection')) {
-    Icon = <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>;
-  }
-
+function Agent1Summary({ agente1 }: { agente1: NonNullable<SandboxReport['agente1']> }) {
   return (
-    <div className="border border-surface-100 rounded-xl p-4 space-y-2 bg-white">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-2.5">
-          <div className="mt-0.5 text-gray-500 flex-shrink-0">
-            {Icon}
-          </div>
-          <div>
-            <h5 className="font-semibold text-[14px] text-gray-800 leading-tight">
-              {parsedLabel.title || 'Alerta de Privacidad'}
-            </h5>
-            <p className="mt-1 text-[12px] text-gray-600 leading-relaxed">
-              {parsedLabel.description}
-            </p>
-          </div>
-        </div>
-        <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold flex-shrink-0 uppercase tracking-wide ${currentSeverityStyle}`}>
-          {parsedLabel.severity || 'N/A'}
+    <div className="rounded-xl border border-brand-100 bg-brand-50/40 p-4 space-y-3">
+      <div>
+        <p className="text-[10px] font-bold tracking-wider uppercase text-brand-700 mb-1">
+          Propósito declarado
+        </p>
+        <p className="text-sm text-gray-800 leading-snug">{agente1.proposito}</p>
+      </div>
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-[10px] px-2 py-0.5 rounded-full bg-white border border-surface-200 text-gray-600 font-medium uppercase tracking-wide">
+          {agente1.categoria}
+        </span>
+        <span className="text-[10px] px-2 py-0.5 rounded-full bg-white border border-surface-200 text-gray-600 font-medium">
+          Riesgo inicial: {initialRiskLabel[agente1.nivel_riesgo_inicial] ?? agente1.nivel_riesgo_inicial}
         </span>
       </div>
-      
-      {Array.isArray(parsedLabel.evidence) && parsedLabel.evidence.length > 0 && (
-        <div className="mt-3">
-          <button
-            onClick={() => setShowEvidence(v => !v)}
-            className="flex items-center gap-1.5 text-[11px] text-brand-600 hover:text-brand-700 font-medium transition-colors"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`transform transition-transform ${showEvidence ? 'rotate-180' : ''}`}>
-              <polyline points="6 9 12 15 18 9"/>
-            </svg>
-            Ver Evidencias ({parsedLabel.evidence.length} encontradas)
-          </button>
-          
-          {showEvidence && (
-            <div className="mt-2 pl-3 border-l-2 border-surface-100">
-              <ul className="space-y-1.5 list-none">
-                {parsedLabel.evidence.map((item, idx) => (
-                  <li key={idx} className="relative pl-3 text-[11px] text-gray-500 font-mono italic break-all">
-                    <span className="absolute left-0 top-[6px] w-1 h-1 rounded-full bg-gray-300"></span>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+      {agente1.razon_nivel_riesgo && (
+        <p className="text-[12px] text-gray-600 leading-relaxed italic">
+          {agente1.razon_nivel_riesgo}
+        </p>
+      )}
+      {agente1.acciones_esperadas.length > 0 && (
+        <div>
+          <p className="text-[10px] font-semibold tracking-wider uppercase text-gray-400 mb-1">
+            Acciones esperadas
+          </p>
+          <ul className="space-y-0.5">
+            {agente1.acciones_esperadas.map((a, i) => (
+              <li key={i} className="text-[12px] text-gray-600 leading-snug">• {a}</li>
+            ))}
+          </ul>
         </div>
       )}
-    </div>
-  );
-}
-
-// ── Score Evolution (Risk Journey) ──
-
-function ScoreEvolution({ s1, s2, s3 }: { s1: number; s2: number; s3: number }) {
-  const getScoreColor = (s: number) => {
-    if (s >= 75) return 'text-red-600 bg-red-100 border-red-200';
-    if (s >= 30) return 'text-amber-600 bg-amber-100 border-amber-200';
-    return 'text-green-600 bg-green-100 border-green-200';
-  };
-
-  return (
-    <div className="bg-white border border-surface-100 rounded-2xl p-4 shadow-sm">
-      <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20v-6M6 20V10M18 20V4"/></svg>
-        Evolución del Riesgo (Journey)
-      </h4>
-      <div className="flex items-center justify-between relative px-2">
-        <div className="absolute top-5 left-10 right-10 h-0.5 bg-gray-100 -z-0" />
-        
-        <div className="relative z-10 flex flex-col items-center gap-2 group">
-          <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center font-bold text-sm transition-all duration-300 group-hover:scale-110 ${getScoreColor(s1)}`}>
-            {s1}
-          </div>
-          <div className="text-center">
-            <p className="text-[10px] font-bold text-gray-800 uppercase tracking-tighter leading-none">Superficie</p>
-            <p className="text-[9px] text-gray-400 leading-tight mt-1 max-w-[80px]">Permisos declarados</p>
-          </div>
+      {agente1.acciones_NO_esperadas.length > 0 && (
+        <div>
+          <p className="text-[10px] font-semibold tracking-wider uppercase text-gray-400 mb-1">
+            Acciones NO esperadas
+          </p>
+          <ul className="space-y-0.5">
+            {agente1.acciones_NO_esperadas.map((a, i) => (
+              <li key={i} className="text-[12px] text-gray-600 leading-snug">• {a}</li>
+            ))}
+          </ul>
         </div>
-
-        <div className="relative z-10 flex flex-col items-center gap-2 group">
-          <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center font-bold text-sm transition-all duration-300 group-hover:scale-110 ${getScoreColor(s2)}`}>
-            {s2}
-          </div>
-          <div className="text-center">
-            <p className="text-[10px] font-bold text-gray-800 uppercase tracking-tighter leading-none">Contexto</p>
-            <p className="text-[9px] text-gray-400 leading-tight mt-1 max-w-[80px]">Análisis de Intención</p>
-          </div>
-        </div>
-
-        <div className="relative z-10 flex flex-col items-center gap-2 group">
-          <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center font-bold text-sm transition-all duration-300 group-hover:scale-110 ${getScoreColor(s3)}`}>
-            {s3}
-          </div>
-          <div className="text-center">
-            <p className="text-[10px] font-bold text-gray-800 uppercase tracking-tighter leading-none">Real</p>
-            <p className="text-[9px] text-gray-400 leading-tight mt-1 max-w-[80px]">Dinámico (Agente 4)</p>
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -358,28 +222,28 @@ function ExtensionDrawer({
     <>
       {open && (
         <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-40 transition-opacity"
+          className="fixed inset-0 bg-black/20 z-40 transition-opacity"
           onClick={onClose}
         />
       )}
       <div
-        className={`fixed top-0 right-0 h-full w-[550px] bg-white shadow-[-8px_0_24px_rgba(0,0,0,0.1)] z-50 flex flex-col
-          transform transition-transform duration-400 ease-out
+        className={`fixed top-0 right-0 h-full w-[460px] bg-white shadow-2xl z-50 flex flex-col
+          transform transition-transform duration-300 ease-in-out
           ${open ? 'translate-x-0' : 'translate-x-full'}`}
       >
         {/* Header */}
-        <div className="flex items-start justify-between p-6 border-b border-surface-100 bg-white/80 backdrop-blur-md sticky top-0 z-10 flex-shrink-0">
-          <div className="flex items-center gap-4 min-w-0">
+        <div className="flex items-start justify-between p-6 border-b border-surface-100 flex-shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
             {ext.icons.length > 0 ? (
-              <img src={ext.icons[ext.icons.length - 1].url} alt="" className="w-12 h-12 rounded-2xl shadow-sm flex-shrink-0" />
+              <img src={ext.icons[ext.icons.length - 1].url} alt="" className="w-10 h-10 rounded-xl flex-shrink-0" />
             ) : (
-              <div className="w-12 h-12 rounded-2xl bg-brand-100 flex items-center justify-center flex-shrink-0 shadow-sm">
-                <span className="text-lg font-bold text-brand-600">{ext.name.charAt(0)}</span>
+              <div className="w-10 h-10 rounded-xl bg-brand-100 flex items-center justify-center flex-shrink-0">
+                <span className="text-sm font-bold text-brand-600">{ext.name.charAt(0)}</span>
               </div>
             )}
             <div className="min-w-0">
-              <h2 className="text-base font-bold text-gray-900 truncate pr-4">{ext.name}</h2>
-              <p className="text-xs text-gray-400 font-medium tracking-wide">VERSIÓN {ext.version}</p>
+              <p className="text-sm font-bold text-gray-800 truncate">{ext.name}</p>
+              <p className="text-xs text-gray-400">v{ext.version}</p>
             </div>
           </div>
           <button
@@ -396,143 +260,83 @@ function ExtensionDrawer({
 
           {isCompleted && report && (
             <>
-              {/* Risk Journey / Scores */}
-              <ScoreEvolution s1={report.score1} s2={report.score2} s3={report.score3} />
-
-              {/* Risk + recommendation */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 flex-wrap">
+              {/* Risk badge */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <span
+                  className={`inline-flex items-center gap-1.5 text-sm font-bold px-3 py-1.5 rounded-full ${backendRiskBadge[report.riskLevel]?.color ?? 'bg-gray-100 text-gray-600'}`}
+                >
                   <span
-                    className={`inline-flex items-center gap-1.5 text-sm font-bold px-3 py-1.5 rounded-full ${backendRiskBadge[report.riskLevel]?.color ?? 'bg-gray-100 text-gray-600'}`}
-                  >
-                    <span
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: backendRiskDot[report.riskLevel] }}
-                    />
-                    {backendRiskBadge[report.riskLevel]?.label ?? report.riskLevel}
-                  </span>
-                  <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-semibold">
-                    Verificado ✓
-                  </span>
-                </div>
-                <p className="text-sm font-medium text-gray-700">
-                  {recommendationLabels[report.recommendation] ?? report.recommendation}
-                </p>
-                <div>
-                  <div className="flex items-center justify-between text-xs text-gray-400 mb-1.5">
-                    <span>Confianza del análisis</span>
-                    <span className="font-semibold text-gray-600">{Math.round(report.confidence * 100)}%</span>
-                  </div>
-                  <div className="h-1.5 bg-surface-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-brand-500 rounded-full transition-all duration-700"
-                      style={{ width: `${Math.round(report.confidence * 100)}%` }}
-                    />
-                  </div>
-                </div>
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: backendRiskDot[report.riskLevel] }}
+                  />
+                  {backendRiskBadge[report.riskLevel]?.label ?? report.riskLevel}
+                </span>
+                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-semibold">
+                  Verificado ✓
+                </span>
               </div>
 
-              {/* Findings */}
+              {/* Agent 1 summary */}
+              {report.agente1 && <Agent1Summary agente1={report.agente1} />}
+
+              {/* Priority contacted domains */}
               <section>
                 <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">
-                  Comportamiento detectado
+                  Dominios contactados (prioritarios)
                 </h4>
-                {(report.findings ?? []).length === 0 ? (
-                  <p className="text-sm text-gray-400 italic">No se detectaron comportamientos maliciosos</p>
-                ) : (
-                  <div className="space-y-2">
-                    {(report.findings ?? []).map((f, i) => <FindingCard key={i} finding={f} />)}
-                  </div>
-                )}
-              </section>
-
-              {/* Stress Test Results */}
-              {(report as any).testResults && (report as any).testResults.length > 0 && (
-                <section className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
-                  <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-                    Resultados de Pruebas de Estrés
-                  </h4>
-                  <div className="space-y-3">
-                    {(report as any).testResults.map((test: any, i: number) => (
-                      <div key={i} className="bg-white border border-slate-100 rounded-xl p-3 shadow-sm">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-bold text-slate-800">{test.name}</span>
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-black uppercase ${test.status === 'FAILED' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-                            {test.status === 'FAILED' ? 'FALLÓ' : 'PASÓ'}
-                          </span>
-                        </div>
-                        <p className="text-xs text-slate-600 mb-2 leading-relaxed">{test.description}</p>
-                        {test.findings && test.findings.length > 0 && (
-                          <div className="bg-slate-50 rounded-lg p-2 space-y-1">
-                            {test.findings.map((f: string, fi: number) => (
-                              <div key={fi} className="text-[10px] text-slate-500 font-mono break-all leading-tight border-l-2 border-slate-200 pl-2">
-                                {f}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              {/* Contacted URLs */}
-              <section>
-                <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">
-                  URLs contactadas
-                </h4>
-                {(report.contactedUrls ?? []).length === 0 ? (
-                  <p className="text-sm text-gray-400 italic">No se detectó contacto con servidores externos</p>
+                {report.dominios_contactados_prioritarios.length === 0 ? (
+                  <p className="text-sm text-gray-400 italic">
+                    No se detectó contacto con dominios sensibles
+                  </p>
                 ) : (
                   <div className="space-y-1.5">
-                    {(report.contactedUrls ?? []).map((url, i) => (
+                    {report.dominios_contactados_prioritarios.map((url, i) => (
                       <div key={i} className="flex items-center gap-2 text-sm text-gray-600">
                         <span className="text-gray-400 flex-shrink-0">
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
                         </span>
-                        <span className="truncate font-mono text-xs">{typeof url === 'string' ? url : JSON.stringify(url)}</span>
+                        <span className="truncate font-mono text-xs">{url}</span>
                       </div>
                     ))}
                   </div>
                 )}
               </section>
 
-              {/* Abused permissions */}
+              {/* Static narrative findings */}
               <section>
                 <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">
-                  Permisos abusados
+                  Resultados de análisis estático
                 </h4>
-                {(report.abusedPermissions ?? []).length === 0 ? (
-                  <p className="text-sm text-gray-400 italic">Ningún permiso abusado detectado</p>
-                ) : (
-                  <div className="flex flex-wrap gap-1.5">
-                    {(report.abusedPermissions ?? []).map((p, i) => (
-                      <span key={i} className="text-xs px-2 py-0.5 bg-red-100 text-red-700 rounded font-medium">
-                        {typeof p === 'string' ? p : JSON.stringify(p)}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </section>
-
-              {/* Privacy labels */}
-              <section>
-                <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">
-                  Etiquetas de privacidad
-                </h4>
-                {(report.privacyLabels ?? []).length === 0 ? (
-                  <p className="text-sm text-gray-400 italic">Sin etiquetas de privacidad</p>
+                {report.hallazgos_estaticos_positivos.length === 0 ? (
+                  <p className="text-sm text-gray-400 italic">
+                    No se encontraron comportamientos estáticos sospechosos
+                  </p>
                 ) : (
                   <div className="space-y-2">
-                    {(report.privacyLabels ?? []).map((label, i) => (
-                      <PrivacyLabelCard key={i} label={label} />
+                    {report.hallazgos_estaticos_positivos.map((text, i) => (
+                      <NarrativeFinding key={i} text={text} kind="static" />
                     ))}
                   </div>
                 )}
               </section>
 
+              {/* Dynamic narrative findings */}
+              <section>
+                <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">
+                  Resultados de análisis dinámico
+                </h4>
+                {report.hallazgos_dinamicos_positivos.length === 0 ? (
+                  <p className="text-sm text-gray-400 italic">
+                    No se observó comportamiento sospechoso durante la navegación
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {report.hallazgos_dinamicos_positivos.map((text, i) => (
+                      <NarrativeFinding key={i} text={text} kind="dynamic" />
+                    ))}
+                  </div>
+                )}
+              </section>
             </>
           )}
 
@@ -602,7 +406,6 @@ export default function ExtensionAudit() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedExt, setSelectedExt] = useState<InstalledExtension | null>(null);
 
-  // Open drawer when returning from a notification click
   useEffect(() => {
     if (loading || extensions.length === 0) return;
     storageGet<string | null>('openDrawerForExtension', null).then(extId => {
@@ -786,7 +589,6 @@ export default function ExtensionAudit() {
           </tbody>
         </table>
 
-        {/* Pagination */}
         <div className="flex items-center justify-between px-6 py-4 border-t border-surface-100">
           <p className="text-xs text-gray-400">
             {t('audit.showing', { from: paged.length, total: filtered.length })}
@@ -880,6 +682,11 @@ function ExtRow({
   const hasFailed = job?.status === 'failed';
   const isUnavailable = !!job && !isCompleted && !hasFailed && (job.failureCount ?? 0) >= 3;
 
+  // Total positive findings shown in the row when analysis is complete.
+  const totalFindings = isCompleted && report
+    ? report.hallazgos_estaticos_positivos.length + report.hallazgos_dinamicos_positivos.length
+    : 0;
+
   return (
     <tr
       className="hover:bg-surface-50 transition-colors cursor-pointer"
@@ -906,9 +713,13 @@ function ExtRow({
       </td>
 
       {/* Category */}
-      <td className="px-4 py-4 text-sm text-gray-600">{ext.category}</td>
+      <td className="px-4 py-4 text-sm text-gray-600">
+        {isCompleted && report?.agente1?.categoria
+          ? report.agente1.categoria
+          : ext.category}
+      </td>
 
-      {/* Permissions + backend privacy labels */}
+      {/* Permissions */}
       <td className="px-4 py-4">
         <div className="flex flex-col gap-1">
           {visiblePerms.map(p => (
@@ -942,30 +753,6 @@ function ExtRow({
               {lang === 'es' ? 'Ver menos' : 'Show less'}
             </button>
           )}
-          {/* Backend privacy labels */}
-          {isCompleted && report && (report.privacyLabels ?? []).slice(0, 2).map((labelObj, idx) => {
-            let labelTitle = 'Etiqueta de privacidad';
-            if (typeof labelObj === 'string') {
-              try {
-                const parsed = JSON.parse(labelObj);
-                labelTitle = parsed.title || labelTitle;
-              } catch (e) {
-                labelTitle = labelObj;
-              }
-            } else if (labelObj && typeof labelObj === 'object') {
-              labelTitle = (labelObj as any).title || labelTitle;
-            }
-            
-            return (
-              <span
-                key={idx}
-                className="text-[10px] leading-tight px-2 py-0.5 rounded inline-block bg-red-100 text-red-700"
-                title={labelTitle}
-              >
-                {labelTitle.length > 28 ? labelTitle.slice(0, 28) + '…' : labelTitle}
-              </span>
-            );
-          })}
         </div>
       </td>
 
@@ -986,9 +773,11 @@ function ExtRow({
                   Verificado ✓
                 </span>
               </div>
-              <p className="text-[10px] text-gray-400">
-                Confianza: {Math.round(report.confidence * 100)}%
-              </p>
+              {totalFindings > 0 && (
+                <p className="text-[10px] text-gray-400">
+                  {totalFindings} hallazgo(s) confirmados
+                </p>
+              )}
             </>
           ) : (
             <>
