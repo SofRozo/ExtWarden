@@ -12,9 +12,12 @@ import type {
   BackendRiskLevel,
   DomainNavigationLog,
   AgentStep,
+  Agent1Output,
+  AgentFinding,
 } from '../../types';
 
 const ITEMS_PER_PAGE = 4;
+const BACKEND_URL = 'http://localhost:3000';
 
 const riskBadge: Record<RiskLevel, { color: string }> = {
   critical: { color: 'bg-risk-criticalBg text-risk-criticalText' },
@@ -110,6 +113,44 @@ function AnalyzedGlow() {
   return (
     <div className="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-purple-100/40 transition-transform duration-500 group-hover:scale-125">
       <div className="absolute inset-5 rounded-full bg-purple-200/30 animate-pulse" style={{ animationDelay: '0.9s' }} />
+    </div>
+  );
+}
+
+// ── Agent finding card ──
+// Renders one item that the LLM agent discovered by reading the source code.
+// These complement the deterministic narratives (which still come from the
+// rule engine) and let the user see what the agent itself flagged.
+const severityBadge: Record<AgentFinding['severidad'], string> = {
+  critico: 'bg-red-100 text-red-700',
+  alto: 'bg-orange-100 text-orange-700',
+  medio: 'bg-amber-100 text-amber-700',
+  bajo: 'bg-blue-100 text-blue-700',
+};
+
+function AgentFindingCard({ finding }: { finding: AgentFinding }) {
+  return (
+    <div className="border border-surface-100 rounded-xl p-3 space-y-1.5">
+      <div className="flex items-center gap-2 flex-wrap">
+        <span
+          className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${severityBadge[finding.severidad] ?? 'bg-gray-100 text-gray-600'}`}
+        >
+          {finding.severidad}
+        </span>
+        <span className="text-[10px] px-2 py-0.5 rounded bg-purple-100 text-purple-700 font-medium">
+          {finding.tipo}
+        </span>
+        <span className="text-[11px] text-gray-500 font-mono break-all">
+          {finding.archivo}
+          {finding.linea ? `:${finding.linea}` : ''}
+        </span>
+      </div>
+      <p className="text-sm text-gray-700 leading-snug">{finding.descripcion}</p>
+      {finding.snippet && (
+        <pre className="text-[11px] text-gray-600 bg-surface-50 rounded px-2 py-1 overflow-x-auto font-mono">
+          {finding.snippet}
+        </pre>
+      )}
     </div>
   );
 }
@@ -232,9 +273,30 @@ function DomainNavigationCard({ nav }: { nav: DomainNavigationLog }) {
 
 // ── Agent 1 summary block ──
 
+const verdictBadge: Record<NonNullable<Agent1Output['veredicto_global']>, { color: string; label: string }> = {
+  maliciosa: { color: 'bg-red-100 text-red-700',     label: 'Maliciosa' },
+  sospechosa: { color: 'bg-amber-100 text-amber-700', label: 'Sospechosa' },
+  benigna:   { color: 'bg-emerald-100 text-emerald-700', label: 'Benigna' },
+};
+
 function Agent1Summary({ agente1 }: { agente1: NonNullable<SandboxReport['agente1']> }) {
+  const verdict = agente1.veredicto_global
+    ? verdictBadge[agente1.veredicto_global]
+    : null;
   return (
     <div className="rounded-xl border border-brand-100 bg-brand-50/40 p-4 space-y-3">
+      {verdict && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className={`inline-flex items-center text-xs font-bold px-2.5 py-1 rounded-full ${verdict.color}`}>
+            Veredicto: {verdict.label}
+          </span>
+        </div>
+      )}
+      {agente1.explicacion && (
+        <p className="text-sm text-gray-800 leading-relaxed">
+          {agente1.explicacion}
+        </p>
+      )}
       <div>
         <p className="text-[10px] font-bold tracking-wider uppercase text-brand-700 mb-1">
           Propósito declarado
@@ -434,6 +496,25 @@ function ExtensionDrawer({
                 )}
               </section>
 
+              {/* Agent's own findings — items the LLM caught reading the code,
+                  in addition to the deterministic rule output */}
+              {report.agente1?.hallazgos_propios &&
+                report.agente1.hallazgos_propios.length > 0 && (
+                  <section>
+                    <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">
+                      Hallazgos adicionales del agente
+                    </h4>
+                    <p className="text-[11px] text-gray-400 mb-2 italic">
+                      Items que el agente detectó al revisar el código fuente, además del análisis estático determinista.
+                    </p>
+                    <div className="space-y-2">
+                      {report.agente1.hallazgos_propios.map((f, i) => (
+                        <AgentFindingCard key={i} finding={f} />
+                      ))}
+                    </div>
+                  </section>
+                )}
+
               {/* Agent timeline — what the navigator did per priority domain */}
               {report.navegacionDominios && report.navegacionDominios.length > 0 && (
                 <section>
@@ -515,6 +596,8 @@ export default function ExtensionAudit() {
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedExt, setSelectedExt] = useState<InstalledExtension | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   useEffect(() => {
     if (loading || extensions.length === 0) return;
@@ -538,6 +621,43 @@ export default function ExtensionAudit() {
       );
     } else {
       onResult?.(false);
+    }
+  }, []);
+
+  const handleUploadPackage = useCallback(async (file: File | undefined) => {
+    if (!file) return;
+    setUploading(true);
+    setUploadError(null);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const res = await fetch(`${BACKEND_URL}/analyze/upload`, {
+        method: 'POST',
+        body: form,
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json() as {
+        jobId: string;
+        extensionId: string;
+        extensionName?: string;
+        status: SandboxJob['status'];
+      };
+      const jobs = await storageGet<Record<string, SandboxJob>>('sandboxJobs', {});
+      jobs[data.extensionId] = {
+        jobId: data.jobId,
+        extensionName: data.extensionName ?? file.name,
+        status: data.status ?? 'queued',
+        submittedAt: new Date().toISOString(),
+        failureCount: 0,
+      };
+      await storageSet('sandboxJobs', jobs);
+      if (isChromeExtension()) {
+        chrome.runtime.sendMessage({ action: 'resumeSandboxPolling' });
+      }
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setUploading(false);
     }
   }, []);
 
@@ -578,9 +698,38 @@ export default function ExtensionAudit() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-800">{t('audit.title')}</h1>
-        <p className="text-sm text-gray-400 mt-0.5">{t('audit.subtitle')}</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">{t('audit.title')}</h1>
+          <p className="text-sm text-gray-400 mt-0.5">{t('audit.subtitle')}</p>
+          {uploadError && (
+            <p className="text-xs text-red-500 mt-1 max-w-xl truncate">{uploadError}</p>
+          )}
+        </div>
+        <label
+          className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-surface-200 text-sm font-medium transition-colors ${
+            uploading
+              ? 'text-gray-400 bg-surface-50 cursor-wait'
+              : 'text-gray-600 hover:bg-surface-50 cursor-pointer'
+          }`}
+        >
+          <input
+            type="file"
+            accept=".zip,.crx"
+            className="hidden"
+            disabled={uploading}
+            onChange={(e) => {
+              void handleUploadPackage(e.target.files?.[0]);
+              e.currentTarget.value = '';
+            }}
+          />
+          {uploading ? (
+            <span className="w-3 h-3 border border-brand-400 border-t-transparent rounded-full animate-spin" />
+          ) : (
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+          )}
+          {uploading ? 'Subiendo...' : 'Probar ZIP/CRX'}
+        </label>
       </div>
 
       {/* Bento Stats — 4 cards */}
@@ -782,7 +931,7 @@ function ExtRow({
     });
   };
   const badge = riskBadge[ext.riskLevel];
-  const sensitivePerms = [...ext.suspiciousPermissions, ...ext.incoherentPermissions];
+  const sensitivePerms = [...ext.elevatedPermissions, ...ext.criticalPermissions];
   const displayPerms = sensitivePerms.length > 0 ? sensitivePerms : ext.permissions.slice(0, 2);
   const visiblePerms = expanded ? displayPerms : displayPerms.slice(0, 3);
   const hiddenCount = displayPerms.length - 3;
@@ -836,9 +985,9 @@ function ExtRow({
             <span
               key={p}
               className={`text-[10px] leading-tight px-2 py-0.5 rounded inline-block ${
-                ext.incoherentPermissions.includes(p)
+                ext.criticalPermissions.includes(p)
                   ? 'bg-red-100 text-red-700'
-                  : ext.suspiciousPermissions.includes(p)
+                  : ext.elevatedPermissions.includes(p)
                     ? 'bg-amber-100 text-amber-700'
                     : 'bg-surface-100 text-gray-500'
               }`}

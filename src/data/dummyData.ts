@@ -1,6 +1,6 @@
 /**
  * Datos de ejemplo para desarrollo (cuando las APIs de Chrome no están disponibles).
- * Los puntajes reflejan la fórmula actualizada de la tesis.
+ * Los puntajes reflejan el modelo actual: peso del permiso + factor de host.
  */
 
 import { computeRisk } from '../engine/riskEngine';
@@ -21,13 +21,13 @@ function makeExt(
     permissions, hostPermissions, category,
     riskScore: r.score,
     riskLevel: r.level,
-    expectedPermissions:   r.expectedPermissions,
-    suspiciousPermissions: r.suspiciousPermissions,
-    incoherentPermissions: r.incoherentPermissions,
+    lowPermissions: r.lowPermissions,
+    elevatedPermissions: r.mediumAndHighPermissions,
+    criticalPermissions: r.criticalPermissions,
   };
 }
 
-// Ejemplo 1 (tesis, score ≈ 0.45 Bajo): Ad-blocker legítimo
+// Ejemplo 1: Ad-blocker legítimo
 const adblocker = makeExt(
   'ext-001', 'uBlock Origin', '1.57.0',
   ['storage', 'activeTab', 'declarativeNetRequest'],
@@ -35,7 +35,7 @@ const adblocker = makeExt(
   'Privacy & Security',
 );
 
-// Ejemplo 2 (tesis, score ≈ 55.3 Crítico): Herramienta sospechosa
+// Ejemplo 2: Herramienta sospechosa
 const suspiciousTool = makeExt(
   'ext-002', 'SuperTab Pro', '3.1.0',
   ['storage', 'cookies', 'scripting', 'history', 'alarms'],
@@ -43,7 +43,7 @@ const suspiciousTool = makeExt(
   'Tools',
 );
 
-// Ejemplo 3 (tesis, score ≈ 47.6 Alto): Patrón DataByCloud
+// Ejemplo 3: Patrón DataByCloud
 const databycloud = makeExt(
   'ext-003', 'HR Helper Suite', '2.0.1',
   ['cookies', 'management', 'scripting', 'storage', 'declarativeNetRequest'],

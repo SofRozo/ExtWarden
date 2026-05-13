@@ -414,6 +414,11 @@ interface SandboxReportSW {
     resultado_dinamico: any[];
   };
   navegacionDominios: any[];
+  puntuacion_riesgo?: {
+    score: number;
+    level: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+    reasons: string[];
+  };
   /** Derived from the verdicted findings so existing UI badges keep working. */
   riskLevel: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE';
 }
@@ -489,13 +494,17 @@ function normalizeReport(raw: Record<string, unknown>): SandboxReportSW {
       HIGH_RISK_DISCOVERY_TYPES.has(f?.discoveryType),
   );
 
+  const backendRisk = raw.puntuacion_riesgo as SandboxReportSW['puntuacion_riesgo'] | undefined;
+
   let riskLevel: SandboxReportSW['riskLevel'];
-  if (dynamicHasMalicious || csCriticalStatic) {
+  if (backendRisk?.level === 'CRITICAL' || dynamicHasMalicious || csCriticalStatic) {
     riskLevel = 'CRITICAL';
-  } else if (dynamicHasSuspicious || totalPositiveStatic >= 3) {
+  } else if (backendRisk?.level === 'HIGH' || dynamicHasSuspicious || totalPositiveStatic >= 3) {
     riskLevel = 'HIGH';
-  } else if (totalPositiveStatic >= 1) {
+  } else if (backendRisk?.level === 'MEDIUM' || totalPositiveStatic >= 1) {
     riskLevel = 'MEDIUM';
+  } else if (backendRisk?.level === 'LOW') {
+    riskLevel = 'LOW';
   } else if (
     agente1 &&
     (agente1.nivel_riesgo_inicial === 'alto' ||
@@ -524,6 +533,7 @@ function normalizeReport(raw: Record<string, unknown>): SandboxReportSW {
       raw.hallazgos_dinamicos_positivos,
     ),
     estructura,
+    puntuacion_riesgo: backendRisk,
     riskLevel,
   };
 }
@@ -678,6 +688,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       );
       sendResponse({ success: ok });
     })();
+    return true;
+  }
+  if (message.action === 'resumeSandboxPolling') {
+    void ensurePollingAlarm().then(() => sendResponse({ success: true }));
     return true;
   }
 });

@@ -26,7 +26,7 @@ export default function Dashboard() {
   }, [extensions]);
 
   const riskVectors = useMemo(
-    () => extensions.reduce((sum, e) => sum + e.suspiciousPermissions.length + e.incoherentPermissions.length, 0),
+    () => extensions.reduce((sum, e) => sum + e.elevatedPermissions.length + e.criticalPermissions.length, 0),
     [extensions],
   );
 

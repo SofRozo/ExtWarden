@@ -111,7 +111,7 @@
     "disableExt": "Desactivar extensión"
   },
   "about": {
-    "description": "ExtWarden analiza las extensiones de Chrome instaladas y te protege en sitios sensibles usando un modelo de riesgo basado en permisos, categorías funcionales y alcance de host.",
+    "description": "ExtWarden analiza las extensiones de Chrome instaladas y te protege en sitios sensibles usando un modelo de riesgo basado en permisos y alcance de host.",
     "featuresTitle": "Funcionalidades",
     "features": {
       "riskAudit": "Motor de auditoría semi-cuantitativo de permisos",
@@ -122,7 +122,7 @@
     },
     "howItWorks": "Cómo funciona",
     "steps": {
-      "step1": "El motor de auditoría calcula un puntaje de riesgo combinando el peso de cada permiso, su coherencia con la categoría de la extensión, y el alcance de los host_permissions.",
+      "step1": "El motor de auditoría calcula un puntaje de riesgo combinando el peso de cada permiso y el alcance de los host_permissions.",
       "step2": "El módulo de detección de cambios crea snapshots de permisos y versiones, alertando cuando una actualización introduce nuevos privilegios.",
       "step3": "El control contextual monitorea cada navegación y deshabilita automáticamente las extensiones riesgosas en sitios definidos como zonas seguras."
     }

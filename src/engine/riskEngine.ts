@@ -1,7 +1,7 @@
 // Motor de Auditoria - Formula de calculo de riesgo (Seccion 4.4, Tesis ExtWarden)
 //
-// Riesgo = Sum(i en S) [Peso_i x CoherenciaFactor_i x f(H)]   (permisos sensibles a host)
-//        + Sum(j en E) [Peso_j x CoherenciaFactor_j]            (permisos estaticos)
+// Riesgo = Sum(i en S) [Peso_i x f(H)]   (permisos sensibles a host)
+//        + Sum(j en E) [Peso_j]          (permisos estaticos)
 //
 // Factor de alcance f(H):
 //   Sin host_permissions ni activeTab : 0.0
@@ -11,10 +11,9 @@
 //   <all_urls> o equivalente          : 1.0
 //
 // Umbrales de interpretacion:
-//   0-10 Bajo | 11-25 Moderado | 26-50 Alto | 51+ Critico
+//   0-5 Bajo | 6-15 Moderado | 16-30 Alto | 31+ Critico
 
-import { PERMISSION_WEIGHTS, COHERENCE_FACTORS, type CoherenceLevel } from '../data/permissionWeights';
-import { getCategoryMatrix } from '../data/categoryMatrices';
+import { PERMISSION_WEIGHTS, type PermissionLevel } from '../data/permissionWeights';
 import type { RiskLevel, InstalledExtension } from '../types';
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
@@ -22,8 +21,7 @@ import type { RiskLevel, InstalledExtension } from '../types';
 export interface PermissionDetail {
   permission: string;
   weight: number;
-  coherence: CoherenceLevel;
-  coherenceFactor: number;
+  level: PermissionLevel | 'medium';
   hostSensitive: boolean;
   hostFactor: number;
   contribution: number;
@@ -33,9 +31,9 @@ export interface RiskBreakdown {
   score: number;
   level: RiskLevel;
   hostFactor: number;
-  expectedPermissions: string[];
-  suspiciousPermissions: string[];
-  incoherentPermissions: string[];
+  lowPermissions: string[];
+  mediumAndHighPermissions: string[];
+  criticalPermissions: string[];
   permissionDetails: PermissionDetail[];
 }
 
@@ -69,25 +67,12 @@ export function computeHostFactor(hostPermissions: string[], permissions: string
   return permissions.includes('activeTab') ? 0.3 : 0.0;
 }
 
-// ── Clasificación de permiso en la matriz ─────────────────────────────────────
-
-export function classifyPermission(
-  permission: string,
-  matrix: { expected: string[]; suspicious: string[]; incoherent: string[] },
-): CoherenceLevel {
-  if (matrix.expected.includes(permission))   return 'expected';
-  if (matrix.incoherent.includes(permission)) return 'incoherent';
-  if (matrix.suspicious.includes(permission)) return 'suspicious';
-  // Si no está en ninguna lista: tratar como sospechoso por defecto
-  return 'suspicious';
-}
-
 // ── Conversión puntaje → nivel ────────────────────────────────────────────────
 
 export function scoreToLevel(score: number): RiskLevel {
-  if (score > 50) return 'critical';
-  if (score > 25) return 'high';
-  if (score > 10) return 'medium';
+  if (score > 30) return 'critical';
+  if (score > 15) return 'high';
+  if (score > 5) return 'medium';
   if (score > 0)  return 'low';
   return 'safe';
 }
@@ -99,27 +84,25 @@ export function scoreToLevel(score: number): RiskLevel {
  *
  * @param permissions     Campo "permissions" del manifest
  * @param hostPermissions Campo "host_permissions" del manifest
- * @param category        Categoría de la extensión (nombre o clave)
+ * @param category        Se conserva para compatibilidad visual; no afecta el puntaje.
  */
 export function computeRisk(
   permissions: string[],
   hostPermissions: string[],
-  category: string,
+  category?: string,
 ): RiskBreakdown {
-  const matrix     = getCategoryMatrix(category);
+  void category;
   const hostFactor = computeHostFactor(hostPermissions, permissions);
 
-  const expectedPermissions:   string[] = [];
-  const suspiciousPermissions: string[] = [];
-  const incoherentPermissions: string[] = [];
+  const lowPermissions: string[] = [];
+  const mediumAndHighPermissions: string[] = [];
+  const criticalPermissions: string[] = [];
   const permissionDetails: PermissionDetail[] = [];
   let score = 0;
 
   for (const perm of permissions) {
     // Permisos de plataforma/ChromeOS desconocidos → peso por defecto MEDIO
-    const info = PERMISSION_WEIGHTS[perm] ?? { weight: 2, hostSensitive: false };
-    const coherence       = classifyPermission(perm, matrix);
-    const coherenceFactor = COHERENCE_FACTORS[coherence];
+    const info = PERMISSION_WEIGHTS[perm] ?? { weight: 2, hostSensitive: false, level: 'medium' as const };
 
     // f(H) se aplica solo a permisos del conjunto S
     // Excepción: activeTab se trata como E en la suma (Ejemplos 4.4.2)
@@ -127,17 +110,16 @@ export function computeRisk(
       ? hostFactor
       : 1.0;
 
-    const contribution = info.weight * coherenceFactor * effectiveHostFactor;
+    const contribution = info.weight * effectiveHostFactor;
 
-    if (coherence === 'expected')        expectedPermissions.push(perm);
-    else if (coherence === 'incoherent') incoherentPermissions.push(perm);
-    else                                 suspiciousPermissions.push(perm);
+    if (info.level === 'critical') criticalPermissions.push(perm);
+    else if (info.level === 'low') lowPermissions.push(perm);
+    else mediumAndHighPermissions.push(perm);
 
     permissionDetails.push({
       permission: perm,
       weight: info.weight,
-      coherence,
-      coherenceFactor,
+      level: info.level,
       hostSensitive: info.hostSensitive,
       hostFactor: effectiveHostFactor,
       contribution,
@@ -152,9 +134,9 @@ export function computeRisk(
     score,
     level: scoreToLevel(score),
     hostFactor,
-    expectedPermissions,
-    suspiciousPermissions,
-    incoherentPermissions,
+    lowPermissions,
+    mediumAndHighPermissions,
+    criticalPermissions,
     permissionDetails: permissionDetails.sort((a, b) => b.contribution - a.contribution),
   };
 }
@@ -235,8 +217,8 @@ export function analyzeExtension(
     category,
     riskScore: breakdown.score,
     riskLevel: breakdown.level,
-    expectedPermissions:   breakdown.expectedPermissions,
-    suspiciousPermissions: breakdown.suspiciousPermissions,
-    incoherentPermissions: breakdown.incoherentPermissions,
+    lowPermissions: breakdown.lowPermissions,
+    elevatedPermissions: breakdown.mediumAndHighPermissions,
+    criticalPermissions: breakdown.criticalPermissions,
   };
 }

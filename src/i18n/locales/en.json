@@ -122,7 +122,7 @@
     },
     "howItWorks": "How it works",
     "steps": {
-      "step1": "The audit engine calculates a risk score combining each permission's weight, its coherence with the extension's category, and the host_permissions scope.",
+      "step1": "The audit engine calculates a risk score combining each permission's weight and the host_permissions scope.",
       "step2": "The change detection module creates permission and version snapshots, alerting when an update introduces new privileges.",
       "step3": "Context control monitors every navigation and automatically disables risky extensions on sites defined as safe zones."
     }

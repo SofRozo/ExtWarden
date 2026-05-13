@@ -11,9 +11,9 @@ export interface InstalledExtension {
   category: string;
   riskScore: number;
   riskLevel: RiskLevel;
-  expectedPermissions: string[];
-  suspiciousPermissions: string[];
-  incoherentPermissions: string[];
+  lowPermissions: string[];
+  elevatedPermissions: string[];
+  criticalPermissions: string[];
 }
 
 export interface CriticalZone {
@@ -75,19 +75,26 @@ export type DomainCategory =
   | 'sensible_correo_productividad'
   | 'sensible_gubernamental'
   | 'sensible_llm'
+  | 'sensible_data_broker'
   | 'desconocido';
 
 export type StaticDiscoveryType =
   | 'permiso_chrome_manifest_no_usado'
+  | 'permiso_chrome_manifest_riesgoso'
   | 'uso_api_chrome'
   | 'funcion_javascript_riesgosa'
   | 'flujo_datos_a_red'
   | 'codigo_ofuscado'
+  | 'archivo_minificado'
+  | 'archivo_huerfano'
+  | 'archivo_anidado'
+  | 'dependencia_no_resuelta'
   | 'script_remoto_mv3'
   | 'listener_teclado'
   | 'inyeccion_dom'
   | 'lectura_cookies'
-  | 'lectura_storage_navegador';
+  | 'lectura_storage_navegador'
+  | 'correlacion_riesgo';
 
 export type DomainDiscoveryType = 'url_en_codigo' | 'host_permission_manifest';
 
@@ -97,6 +104,12 @@ export interface VerdictedStaticFinding {
   discoveryType: StaticDiscoveryType;
   detail: string;
   line: number;
+  codeSnippet?: string;
+  severity?: 'low' | 'medium' | 'high' | 'critical';
+  category?: string;
+  why?: string;
+  confidence?: number;
+  scoreImpact?: number;
   veredicto: 'positivo' | 'falso_positivo';
   razon: string;
 }
@@ -156,6 +169,22 @@ export interface Agent1Output {
   senales_alarma_manifest: string[];
   nivel_riesgo_inicial: 'bajo' | 'medio' | 'alto' | 'critico';
   razon_nivel_riesgo: string;
+  /** Holistic verdict produced by Agent 1 after seeing all evidence. */
+  veredicto_global?: 'maliciosa' | 'sospechosa' | 'benigna';
+  /** 2-4 sentence executive summary written for the end user. */
+  explicacion?: string;
+  /** Findings the agent discovered by reading the source code directly.
+   *  Complementary to the deterministic per-finding narratives. */
+  hallazgos_propios?: AgentFinding[];
+}
+
+export interface AgentFinding {
+  archivo: string;
+  linea?: number;
+  tipo: string;
+  descripcion: string;
+  severidad: 'bajo' | 'medio' | 'alto' | 'critico';
+  snippet?: string;
 }
 
 /**
@@ -184,6 +213,11 @@ export interface SandboxReport {
   };
   /** Step-by-step agent decisions per priority domain — used to inspect what the LLM did. */
   navegacionDominios?: DomainNavigationLog[];
+  puntuacion_riesgo?: {
+    score: number;
+    level: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+    reasons: string[];
+  };
   /** Derived in normalizeReport so badges/stats stay coloured. */
   riskLevel: BackendRiskLevel;
 }

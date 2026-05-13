@@ -4,9 +4,6 @@
  * Pesos de impacto (Tabla tab:impact_weights):
  *   CRÍTICO = 10  |  ALTO = 5  |  MEDIO = 2  |  BAJO = 1
  *
- * Factores de coherencia (Tabla tab:coherence_factors):
- *   Esperado = 0.1  |  Sospechoso = 1.0  |  Incoherente = 5.0
- *
  * Clasificación S/E (Tabla tab:se_classification):
  *   S = sensibles a host (se multiplican por f(H))
  *   E = estáticos (riesgo independiente del alcance de hosts)
@@ -107,11 +104,3 @@ export const PERMISSION_WEIGHTS: Record<string, PermissionInfo> = {
   printerProvider:  { level: 'low', weight: 1, hostSensitive: false },
 };
 
-/** Factores de coherencia — Tabla tab:coherence_factors */
-export const COHERENCE_FACTORS = {
-  expected:    0.1,
-  suspicious:  1.0,
-  incoherent:  5.0,
-} as const;
-
-export type CoherenceLevel = keyof typeof COHERENCE_FACTORS;
