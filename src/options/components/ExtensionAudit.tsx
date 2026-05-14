@@ -572,6 +572,19 @@ const STATUS_PRIORITY: Record<UserRiskStatus, number> = {
   no_detectado: 1,
 };
 
+const CATEGORY_PRIORITY: Record<string, number> = {
+  captura_credenciales: 100,
+  keylogging: 95,
+  lectura_informacion: 90,
+  manipulacion_trafico: 85,
+  modificacion_paginas: 80,
+  seguimiento_privacidad: 75,
+  acceso_general_navegador: 65,
+  acceso_historial: 55,
+  descargas_archivos: 45,
+  ofuscacion_transparencia: 35,
+};
+
 function UserRiskCategoryCard({ item }: { item: UserRiskSummaryItem }) {
   const style = STATUS_STYLES[item.estado];
   const [expanded, setExpanded] = useState(item.estado === 'critico');
@@ -660,18 +673,34 @@ function UserRiskCategoriesGrid({
 }) {
   // Ordenar por severidad para que el usuario vea lo importante primero.
   const sorted = [...items].sort(
-    (a, b) => STATUS_PRIORITY[b.estado] - STATUS_PRIORITY[a.estado],
+    (a, b) =>
+      STATUS_PRIORITY[b.estado] - STATUS_PRIORITY[a.estado] ||
+      (CATEGORY_PRIORITY[b.id] ?? 0) - (CATEGORY_PRIORITY[a.id] ?? 0),
   );
+  const active = sorted.filter((item) => item.estado !== 'no_detectado');
+  const inactive = sorted.filter((item) => item.estado === 'no_detectado');
   return (
     <section>
       <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">
-        Comportamientos detectados (10 categorías)
+        Señales principales por categoría
       </h4>
       <div className="space-y-2">
-        {sorted.map((item) => (
+        {active.map((item) => (
           <UserRiskCategoryCard key={item.id} item={item} />
         ))}
       </div>
+      {inactive.length > 0 && (
+        <details className="mt-3 rounded-xl border border-surface-100 bg-white p-3">
+          <summary className="cursor-pointer text-[12px] font-semibold text-gray-500">
+            Categorías sin señales fuertes ({inactive.length})
+          </summary>
+          <div className="mt-3 space-y-2">
+            {inactive.map((item) => (
+              <UserRiskCategoryCard key={item.id} item={item} />
+            ))}
+          </div>
+        </details>
+      )}
     </section>
   );
 }
