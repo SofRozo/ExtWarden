@@ -524,17 +524,19 @@ function UserVerdictBanner({ verdict }: { verdict: UserFacingVerdict }) {
 
 // ── 10 categories grid ──
 
-const CATEGORY_ICON: Record<UserRiskSummaryItem['id'], string> = {
-  acceso_general_navegador: '🌐',
-  modificacion_paginas: '✏️',
-  lectura_informacion: '👁️',
-  captura_credenciales: '🔑',
-  keylogging: '⌨️',
-  seguimiento_privacidad: '📡',
-  manipulacion_trafico: '🛣️',
-  acceso_historial: '🕘',
-  descargas_archivos: '⬇️',
-  ofuscacion_transparencia: '🌫️',
+import { Globe, Edit3, Eye, Key, Keyboard, Radio, Route, Clock, Download, ShieldAlert } from 'lucide-react';
+
+const CATEGORY_ICON: Record<UserRiskSummaryItem['id'], JSX.Element> = {
+  acceso_general_navegador: <Globe size={20} className="text-blue-500" />,
+  modificacion_paginas: <Edit3 size={20} className="text-indigo-500" />,
+  lectura_informacion: <Eye size={20} className="text-teal-500" />,
+  captura_credenciales: <Key size={20} className="text-amber-500" />,
+  keylogging: <Keyboard size={20} className="text-orange-500" />,
+  seguimiento_privacidad: <Radio size={20} className="text-purple-500" />,
+  manipulacion_trafico: <Route size={20} className="text-red-500" />,
+  acceso_historial: <Clock size={20} className="text-gray-500" />,
+  descargas_archivos: <Download size={20} className="text-cyan-500" />,
+  ofuscacion_transparencia: <ShieldAlert size={20} className="text-slate-500" />,
 };
 
 const STATUS_STYLES: Record<
@@ -929,6 +931,69 @@ function ExtensionDrawer({
   );
 }
 
+// ── Glossary Modal ─────────────────────────────────────────────────────────────
+
+function GlossaryModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { t } = useTranslation();
+
+  if (!open) return null;
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/30 z-[60] backdrop-blur-sm" onClick={onClose} />
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-[70] flex flex-col overflow-hidden max-h-[85vh]">
+        <div className="p-5 border-b border-surface-100 flex items-center justify-between bg-surface-50">
+          <div className="flex items-center gap-2">
+            <ShieldAlert size={20} className="text-brand-500" />
+            <h3 className="font-bold text-gray-800">{t('glossary.title', 'Diccionario de Extensiones')}</h3>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+            ✕
+          </button>
+        </div>
+        <div className="p-6 overflow-y-auto space-y-5">
+          <div>
+            <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2 mb-1">
+              <Globe size={16} className="text-blue-500" />
+              {t('glossary.content_script.title', 'Content Script')}
+            </h4>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              {t('glossary.content_script.desc', 'Archivos que viven adentro de las páginas web que visitas (como tu banco o Facebook). Pueden ver o modificar todo lo que ves en la pantalla.')}
+            </p>
+          </div>
+          <div>
+            <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2 mb-1">
+              <Radio size={16} className="text-purple-500" />
+              {t('glossary.background.title', 'Background / Service Worker')}
+            </h4>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              {t('glossary.background.desc', 'El "cerebro invisible" de la extensión. Se ejecuta de forma oculta todo el tiempo, coordinando permisos y comunicándose con servidores en Internet sin que lo notes.')}
+            </p>
+          </div>
+          <div>
+            <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2 mb-1">
+              <Edit3 size={16} className="text-indigo-500" />
+              {t('glossary.popup.title', 'Popup')}
+            </h4>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              {t('glossary.popup.desc', 'La ventanita visual que se abre únicamente cuando haces clic en el ícono de la extensión arriba a la derecha.')}
+            </p>
+          </div>
+          <div>
+            <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2 mb-1">
+              <Key size={16} className="text-amber-500" />
+              {t('glossary.manifest.title', 'Manifest')}
+            </h4>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              {t('glossary.manifest.desc', 'La tarjeta de presentación o "contrato" de la extensión, donde le pide permisos a Chrome para funcionar.')}
+            </p>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function ExtensionAudit() {
@@ -941,6 +1006,7 @@ export default function ExtensionAudit() {
   const [selectedExt, setSelectedExt] = useState<InstalledExtension | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [showGlossary, setShowGlossary] = useState(false);
 
   useEffect(() => {
     if (loading || extensions.length === 0) return;
@@ -1239,6 +1305,17 @@ export default function ExtensionAudit() {
           }}
         />
       )}
+
+      {/* Glossary Button */}
+      <button
+        onClick={() => setShowGlossary(true)}
+        className="fixed bottom-6 right-6 w-12 h-12 bg-brand-600 hover:bg-brand-700 text-white rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-105 z-40 group"
+        title={t('glossary.button_tooltip', '¿Qué significan estos términos?')}
+      >
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+      </button>
+
+      <GlossaryModal open={showGlossary} onClose={() => setShowGlossary(false)} />
     </div>
   );
 }
