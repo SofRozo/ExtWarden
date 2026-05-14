@@ -2,13 +2,11 @@
  * Background Service Worker — Manifest V3
  *
  * 1. Tab navigation → check if URL matches a critical zone
- * 2. Evaluate extensions using the thesis risk engine
- * 3. Send alerts to content scripts for risky extensions in zones
+ * 2. Disable all other extensions while the tab is inside a safe zone
+ * 3. Re-enable only the extensions that ExtWarden disabled when leaving zones
  * 4. Handle messages from popup/options/content scripts
  * 5. Track blocked counters & activity log
  */
-
-import { computeRisk } from '../engine/riskEngine';
 
 interface CriticalZone {
   id: string;
@@ -104,20 +102,31 @@ async function incrementBlocked(): Promise<void> {
 
 /**
  * Extensions auto-disabled by zone protection.
- * Key: "tabId" → value: array of extension IDs that were disabled.
- * When the user leaves the zone (navigates away or closes tab),
- * these extensions are automatically re-enabled.
+ * Key: tabId as string → value: extension IDs that ExtWarden disabled or is
+ * holding disabled for that tab. Stored in chrome.storage because MV3 service
+ * workers can restart and lose in-memory Maps.
  */
-const disabledByZone = new Map<number, string[]>();
+const DISABLED_BY_ZONE_KEY = 'disabledByZone';
+type DisabledByZone = Record<string, string[]>;
+
+async function getDisabledByZone(): Promise<DisabledByZone> {
+  return getFromStorage<DisabledByZone>(DISABLED_BY_ZONE_KEY, {});
+}
+
+async function setDisabledByZone(value: DisabledByZone): Promise<void> {
+  await setInStorage(DISABLED_BY_ZONE_KEY, value);
+}
 
 async function reEnableExtensions(tabId: number): Promise<void> {
-  const ids = disabledByZone.get(tabId);
+  const disabledByZone = await getDisabledByZone();
+  const tabKey = String(tabId);
+  const ids = disabledByZone[tabKey];
   if (!ids || ids.length === 0) return;
 
   // Extensions still held by other tabs must not be re-enabled
   const heldElsewhere = new Set<string>();
-  for (const [otherTabId, otherIds] of disabledByZone.entries()) {
-    if (otherTabId !== tabId) otherIds.forEach(id => heldElsewhere.add(id));
+  for (const [otherTabId, otherIds] of Object.entries(disabledByZone)) {
+    if (otherTabId !== tabKey) otherIds.forEach(id => heldElsewhere.add(id));
   }
 
   for (const extId of ids) {
@@ -128,7 +137,8 @@ async function reEnableExtensions(tabId: number): Promise<void> {
       // Extension may have been uninstalled
     }
   }
-  disabledByZone.delete(tabId);
+  delete disabledByZone[tabKey];
+  await setDisabledByZone(disabledByZone);
 }
 
 async function evaluateTab(tabId: number, url: string): Promise<void> {
@@ -169,30 +179,35 @@ async function evaluateTab(tabId: number, url: string): Promise<void> {
     return;
   }
 
-  // Evaluate ALL extensions
+  // Disable ALL enabled extensions while this tab is in a safe zone.
+  // Already-disabled extensions are only tracked if ExtWarden is holding them
+  // for another zone tab; user-disabled extensions are not re-enabled later.
   const extensions = await chrome.management.getAll();
   console.log('[ExtWarden] total extensions found:', extensions.length);
 
-  const riskyExts = extensions.filter(ext => {
-    if (ext.type !== 'extension' || !ext.enabled || ext.id === chrome.runtime.id) {
+  const disabledByZone = await getDisabledByZone();
+  const tabKey = String(tabId);
+  const heldByAnyZone = new Set(Object.values(disabledByZone).flat());
+
+  const extensionsToHold = extensions.filter(ext => {
+    if (ext.type !== 'extension' || ext.id === chrome.runtime.id) {
       console.log(`[ExtWarden] skip "${ext.name}": type=${ext.type} enabled=${ext.enabled} self=${ext.id === chrome.runtime.id}`);
       return false;
     }
 
-    const permissions = ext.permissions ?? [];
-    const hostPermissions = ext.hostPermissions ?? [];
-    const risk = computeRisk(permissions, hostPermissions);
-
-    console.log(`[ExtWarden] "${ext.name}" → score=${risk.score} level=${risk.level}`);
-    return risk.level === 'critical' || risk.level === 'high';
+    return ext.enabled || heldByAnyZone.has(ext.id);
   });
 
-  console.log('[ExtWarden] risky extensions to block:', riskyExts.map(e => e.name));
+  console.log('[ExtWarden] extensions to disable/hold in safe zone:', extensionsToHold.map(e => e.name));
 
   const disabledIds: string[] = [];
 
-  for (const ext of riskyExts) {
-    // Auto-disable the risky extension
+  for (const ext of extensionsToHold) {
+    if (!ext.enabled) {
+      disabledIds.push(ext.id);
+      continue;
+    }
+
     try {
       console.log(`[ExtWarden] calling setEnabled(false) for "${ext.name}" (${ext.id})`);
       await chrome.management.setEnabled(ext.id, false);
@@ -200,24 +215,28 @@ async function evaluateTab(tabId: number, url: string): Promise<void> {
       disabledIds.push(ext.id);
     } catch (err) {
       console.error(`[ExtWarden] setEnabled(false) FAILED for "${ext.name}":`, err);
+      continue;
     }
 
-
-    await addActivity({
-      extensionId: ext.id,
-      extensionName: ext.name,
-      module: `Zona: ${activeZone.category}`,
-      action: 'blocked',
-      detail: `Extensión deshabilitada en ${activeZone.category}`,
-    });
-
-    await incrementBlocked();
+    try {
+      await addActivity({
+        extensionId: ext.id,
+        extensionName: ext.name,
+        module: `Zona: ${activeZone.category}`,
+        action: 'blocked',
+        detail: `Extensión deshabilitada en ${activeZone.category}`,
+      });
+      await incrementBlocked();
+    } catch {
+      // Activity/increment are best-effort; disabling already succeeded.
+    }
   }
 
   // Track which extensions were disabled for this tab
   if (disabledIds.length > 0) {
-    const existing = disabledByZone.get(tabId) ?? [];
-    disabledByZone.set(tabId, [...new Set([...existing, ...disabledIds])]);
+    const existing = disabledByZone[tabKey] ?? [];
+    disabledByZone[tabKey] = [...new Set([...existing, ...disabledIds])];
+    await setDisabledByZone(disabledByZone);
   }
 }
 

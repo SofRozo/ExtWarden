@@ -83,7 +83,7 @@
   },
   "zones": {
     "title": "Zonas Seguras",
-    "subtitle": "Agrupa sitios sensibles por categoría. Las extensiones riesgosas serán bloqueadas automáticamente.",
+    "subtitle": "Agrupa sitios sensibles por categoría. Las demás extensiones serán bloqueadas automáticamente.",
     "newCategory": "Nueva categoría",
     "categoryName": "Nombre de la categoría",
     "categoryPlaceholder": "ej: Banca, Universidad, IA...",
@@ -123,7 +123,7 @@
     "steps": {
       "step1": "El motor de auditoría calcula un puntaje de riesgo combinando el peso de cada permiso y el alcance de los host_permissions.",
       "step2": "El módulo de detección de cambios crea snapshots de permisos y versiones, alertando cuando una actualización introduce nuevos privilegios.",
-      "step3": "El control contextual monitorea cada navegación y deshabilita automáticamente las extensiones riesgosas en sitios definidos como zonas seguras."
+      "step3": "El control contextual monitorea cada navegación y deshabilita automáticamente las demás extensiones en sitios definidos como zonas seguras."
     }
   },
   "popup": {

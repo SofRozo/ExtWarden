@@ -6,7 +6,7 @@ Extensión de Chrome que analiza los permisos de tus extensiones instaladas y te
 
 - Analiza automáticamente los permisos de cada extensión instalada
 - Permite definir sitios sensibles por categoría (bancos, correo, universidad)
-- Alerta en tiempo real si una extensión riesgosa está activa en un sitio sensible
+- Desactiva temporalmente las demás extensiones cuando visitas un sitio sensible
 - Disponible en Español e Inglés
 - Todo se procesa localmente — tus datos nunca salen de tu navegador
 
@@ -14,7 +14,7 @@ Extensión de Chrome que analiza los permisos de tus extensiones instaladas y te
 
 1. La extensión lee la lista de extensiones instaladas y sus permisos usando la API de Chrome.
 2. Cada extensión recibe un puntaje de riesgo basado en sus permisos y el alcance de sus permisos de host.
-3. Cuando navegas a un sitio que marcaste como sensible, se te avisa si alguna extensión riesgosa está activa.
+3. Cuando navegas a un sitio que marcaste como sensible, ExtWarden desactiva temporalmente las demás extensiones y las restaura al salir.
 
 ## Fórmula de riesgo
 

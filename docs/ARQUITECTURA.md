@@ -31,7 +31,7 @@ ExtWarden es una extensión de Google Chrome (Manifest V3) que implementa tres m
 |--------|----------|--------------|
 | **Auditoría de Permisos** | Calcula un puntaje de riesgo 0–100+ para cada extensión | Fórmula semi-cuantitativa: Peso × Alcance |
 | **Detección de Cambios** | Alerta cuando una extensión actualiza y adquiere nuevos permisos | Snapshots en `chrome.storage`, comparados en `onInstalled` |
-| **Zonas Seguras** | Deshabilita automáticamente extensiones riesgosas en sitios sensibles | Listeners de navegación + `chrome.management.setEnabled` |
+| **Zonas Seguras** | Deshabilita automáticamente las demás extensiones en sitios sensibles | Listeners de navegación + `chrome.management.setEnabled` |
 
 ---
 
@@ -222,13 +222,11 @@ chrome.tabs.onUpdated / onActivated
                 │
                 └── SÍ (zona activa)
                         ├── Obtener todas las extensiones instaladas
-                        ├── Para cada extensión:
-                        │       └── computeRisk() → ¿level = high|critical?
-                        │               ├── chrome.management.setEnabled(false) ← DESHABILITAR
-                        │               ├── chrome.tabs.sendMessage(showAlert) → content script
-                        │               ├── log 'blocked' en activityLog
-                        │               └── incrementBlocked()
-                        └── Guardar IDs deshabilitados en disabledByZone[tabId]
+                        ├── Para cada extensión habilitada que no sea ExtWarden:
+                        │       ├── chrome.management.setEnabled(false) ← DESHABILITAR
+                        │       ├── log 'blocked' en activityLog
+                        │       └── incrementBlocked()
+                        └── Guardar IDs deshabilitados en storage: disabledByZone[tabId]
 
 chrome.tabs.onRemoved / navegación fuera de zona
         └── reEnableExtensions(tabId) ← RE-HABILITAR AUTOMÁTICAMENTE
@@ -297,15 +295,12 @@ Usuario navega a bancolombia.com
         │       ├── Lee criticalZones de storage
         │       ├── Coincide con zona "Banca"
         │       ├── Obtiene todas las extensiones (chrome.management.getAll)
-        │       ├── Evalúa cada una con computeRisk()
-        │       ├── Urban VPN Proxy → score 72 → critical
-        │       │       ├── setEnabled(false) ← DESHABILITADA
-        │       │       ├── sendMessage(tabId, {action:'showAlert',...})
-        │       │       └── addActivity({action:'blocked',...})
-        │       └── disabledByZone.set(tabId, ['urban-vpn-id'])
+        │       ├── Deshabilita cada extensión habilitada que no sea ExtWarden
+        │       ├── addActivity({action:'blocked',...})
+        │       └── Guarda disabledByZone[tabId] en chrome.storage.local
         │
-        ├── Content Script recibe showAlert
-        │       └── Renderiza overlay de alerta en la página
+        ├── Las demás extensiones quedan apagadas durante la zona
+        │
         │
         └── Usuario abre popup
                 └── Muestra "Zona de protección activa · Banca"
@@ -313,7 +308,7 @@ Usuario navega a bancolombia.com
 Usuario navega a google.com (fuera de zona)
         └── tabs.onUpdated → evaluateTab()
                 └── reEnableExtensions(tabId)
-                        └── setEnabled('urban-vpn-id', true) ← RE-HABILITADA
+                        └── setEnabled(extId, true) para cada extensión apagada por ExtWarden
 ```
 
 ---
@@ -324,7 +319,7 @@ Permisos en `public/manifest.json`:
 
 | Permiso | Por qué ExtWarden lo necesita |
 |---------|-------------------------------|
-| `management` | Leer lista de extensiones instaladas y deshabilitar/re-habilitar extensiones riesgosas |
+| `management` | Leer lista de extensiones instaladas y deshabilitar/re-habilitar extensiones durante zonas seguras |
 | `storage` | Guardar zonas configuradas, historial de actividad, snapshots de permisos y contadores |
 | `tabs` | Leer la URL de la pestaña activa para detectar si está en una zona segura |
 | `activeTab` | Acceder a la pestaña activa desde el popup |
@@ -344,6 +339,7 @@ Todas las claves se guardan en `chrome.storage.local`:
 | `activityLog` | `ActivityEvent[]` | Log de eventos de seguridad | 100 entradas (FIFO) |
 | `changeHistory` | `object[]` | Historial de actualizaciones con nuevos permisos | 100 entradas (FIFO) |
 | `extSnapshots` | `Record<string, Snapshot>` | Huella digital de permisos por extensión | Una por extensión |
+| `disabledByZone` | `Record<string, string[]>` | Extensiones deshabilitadas temporalmente por pestaña en zonas seguras | Una lista por pestaña |
 | `protectionEnabled` | `boolean` | Activar/desactivar la protección global | — |
 | `blockedToday` | `number` | Extensiones bloqueadas hoy | Reset diario |
 | `blockedTotal` | `number` | Total histórico de bloqueos | Acumulativo |
@@ -412,7 +408,7 @@ service-worker → dist/service-worker.js (iife, no chunks)
 | Snapshot de permisos v_N vs v_{N+1} | ✅ Completo | `extSnapshots` en storage |
 | Auto-deshabilitar en nuevos permisos | ✅ Completo | `setEnabled(false)` + notificación |
 | Historial de cambios UI | ✅ Completo | `Updates.tsx` + `changeHistory` |
-| Sistema de Zonas Seguras | ✅ Completo | `evaluateTab()`, `disabledByZone` Map |
+| Sistema de Zonas Seguras | ✅ Completo | `evaluateTab()`, `disabledByZone` en storage |
 | Re-habilitar al salir de zona | ✅ Completo | `reEnableExtensions()` en `onRemoved`/`onActivated` |
 | Alerta en página (content script) | ✅ Completo | `content-script.ts` overlay |
 | Popup con estado de zona | ✅ Completo | `Popup.tsx` |
