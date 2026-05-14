@@ -84,14 +84,11 @@ export function scoreToLevel(score: number): RiskLevel {
  *
  * @param permissions     Campo "permissions" del manifest
  * @param hostPermissions Campo "host_permissions" del manifest
- * @param category        Se conserva para compatibilidad visual; no afecta el puntaje.
  */
 export function computeRisk(
   permissions: string[],
   hostPermissions: string[],
-  category?: string,
 ): RiskBreakdown {
-  void category;
   const hostFactor = computeHostFactor(hostPermissions, permissions);
 
   const lowPermissions: string[] = [];
@@ -141,55 +138,6 @@ export function computeRisk(
   };
 }
 
-// ── Inferencia de categoría ───────────────────────────────────────────────────
-
-/**
- * Heurística basada en nombre/descripción de la extensión cuando no hay
- * categoría explícita disponible via chrome.management.
- */
-export function inferCategory(ext: chrome.management.ExtensionInfo): string {
-  if (ext.type === 'theme') return 'Art & Design';
-
-  const text = `${ext.name} ${ext.description ?? ''}`.toLowerCase();
-
-  if (text.includes('vpn') || text.includes('proxy') || text.includes('privacy') ||
-      text.includes('blocker') || text.includes('adblock'))
-    return 'Privacy & Security';
-  if (text.includes('devtools') || text.includes('developer') || text.includes('debug') ||
-      text.includes('react') || text.includes('vue') || text.includes('angular'))
-    return 'Developer Tools';
-  if (text.includes('shop') || text.includes('coupon') || text.includes('price') ||
-      text.includes('deal') || text.includes('honey'))
-    return 'Shopping';
-  if (text.includes('grammar') || text.includes('writing') || text.includes('spell') ||
-      text.includes('translate') || text.includes('learn'))
-    return 'Education';
-  if (text.includes('social') || text.includes('facebook') || text.includes('twitter') ||
-      text.includes('instagram') || text.includes('linkedin'))
-    return 'Social Networking';
-  if (text.includes('news') || text.includes('weather') || text.includes('rss'))
-    return 'News & Weather';
-  if (text.includes('game') || text.includes('play'))
-    return 'Games';
-  if (text.includes('video') || text.includes('music') || text.includes('stream') ||
-      text.includes('youtube') || text.includes('netflix'))
-    return 'Entertainment';
-  if (text.includes('accessibility') || text.includes('screen reader') ||
-      text.includes('color blind'))
-    return 'Accessibility';
-  if (text.includes('dark') || text.includes('theme') || text.includes('color') ||
-      text.includes('design') || text.includes('screenshot'))
-    return 'Art & Design';
-  if (text.includes('calendar') || text.includes('task') || text.includes('todo') ||
-      text.includes('project') || text.includes('workflow'))
-    return 'Workflow & Planning';
-  if (text.includes('email') || text.includes('mail') || text.includes('chat') ||
-      text.includes('message') || text.includes('slack') || text.includes('zoom'))
-    return 'Communication';
-
-  return 'Tools';
-}
-
 // ── Conversión chrome.management → InstalledExtension ────────────────────────
 
 /**
@@ -198,13 +146,11 @@ export function inferCategory(ext: chrome.management.ExtensionInfo): string {
  */
 export function analyzeExtension(
   ext: chrome.management.ExtensionInfo,
-  categoryOverride?: string,
 ): InstalledExtension {
   const permissions     = ext.permissions     ?? [];
   const hostPermissions = ext.hostPermissions ?? [];
-  const category        = categoryOverride ?? inferCategory(ext);
 
-  const breakdown = computeRisk(permissions, hostPermissions, category);
+  const breakdown = computeRisk(permissions, hostPermissions);
 
   return {
     id:      ext.id,
@@ -214,7 +160,6 @@ export function analyzeExtension(
     icons:   (ext.icons ?? []).map((i: { size: number; url: string }) => ({ size: i.size, url: i.url })),
     permissions,
     hostPermissions,
-    category,
     riskScore: breakdown.score,
     riskLevel: breakdown.level,
     lowPermissions: breakdown.lowPermissions,

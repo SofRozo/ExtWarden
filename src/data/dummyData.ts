@@ -12,13 +12,12 @@ function makeExt(
   version: string,
   permissions: string[],
   hostPermissions: string[],
-  category: string,
 ): InstalledExtension {
-  const r = computeRisk(permissions, hostPermissions, category);
+  const r = computeRisk(permissions, hostPermissions);
   return {
     id, name, version, enabled: true,
     icons: [],
-    permissions, hostPermissions, category,
+    permissions, hostPermissions,
     riskScore: r.score,
     riskLevel: r.level,
     lowPermissions: r.lowPermissions,
@@ -32,7 +31,6 @@ const adblocker = makeExt(
   'ext-001', 'uBlock Origin', '1.57.0',
   ['storage', 'activeTab', 'declarativeNetRequest'],
   ['activeTab'],
-  'Privacy & Security',
 );
 
 // Ejemplo 2: Herramienta sospechosa
@@ -40,7 +38,6 @@ const suspiciousTool = makeExt(
   'ext-002', 'SuperTab Pro', '3.1.0',
   ['storage', 'cookies', 'scripting', 'history', 'alarms'],
   ['<all_urls>'],
-  'Tools',
 );
 
 // Ejemplo 3: Patrón DataByCloud
@@ -48,7 +45,6 @@ const databycloud = makeExt(
   'ext-003', 'HR Helper Suite', '2.0.1',
   ['cookies', 'management', 'scripting', 'storage', 'declarativeNetRequest'],
   ['https://workday.com/*', 'https://successfactors.com/*'],
-  'Tools',
 );
 
 // Extensiones adicionales representativas
@@ -56,35 +52,30 @@ const devTools = makeExt(
   'ext-004', 'React DevTools', '5.2.0',
   ['storage', 'tabs', 'activeTab', 'scripting', 'contextMenus'],
   [],
-  'Developer Tools',
 );
 
 const grammar = makeExt(
   'ext-005', 'Grammarly', '14.1.0',
   ['storage', 'activeTab', 'scripting', 'tabs'],
   ['<all_urls>'],
-  'Education',
 );
 
 const darkMode = makeExt(
   'ext-006', 'Dark Reader', '4.9.85',
   ['storage', 'activeTab', 'tabs', 'declarativeNetRequest'],
   ['<all_urls>'],
-  'Functionality & UI',
 );
 
 const passwordMgr = makeExt(
   'ext-007', 'Bitwarden', '2024.1.0',
   ['storage', 'activeTab', 'scripting', 'contextMenus', 'tabs'],
   ['<all_urls>'],
-  'Privacy & Security',
 );
 
 const couponFinder = makeExt(
   'ext-008', 'Honey', '16.0.0',
   ['storage', 'activeTab', 'scripting', 'cookies', 'tabs'],
   ['<all_urls>'],
-  'Shopping',
 );
 
 export const DUMMY_EXTENSIONS: InstalledExtension[] = [

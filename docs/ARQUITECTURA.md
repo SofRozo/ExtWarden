@@ -29,7 +29,7 @@ ExtWarden es una extensión de Google Chrome (Manifest V3) que implementa tres m
 
 | Módulo | Qué hace | Cómo lo hace |
 |--------|----------|--------------|
-| **Auditoría de Permisos** | Calcula un puntaje de riesgo 0–100+ para cada extensión | Fórmula semi-cuantitativa: Peso × Coherencia × Alcance |
+| **Auditoría de Permisos** | Calcula un puntaje de riesgo 0–100+ para cada extensión | Fórmula semi-cuantitativa: Peso × Alcance |
 | **Detección de Cambios** | Alerta cuando una extensión actualiza y adquiere nuevos permisos | Snapshots en `chrome.storage`, comparados en `onInstalled` |
 | **Zonas Seguras** | Deshabilita automáticamente extensiones riesgosas en sitios sensibles | Listeners de navegación + `chrome.management.setEnabled` |
 
@@ -84,8 +84,7 @@ src/
 ├── engine/
 │   └── riskEngine.ts            # Fórmula de riesgo (Sección 4.4 tesis)
 ├── data/
-│   ├── permissionWeights.ts     # Pesos y factores de coherencia
-│   ├── categoryMatrices.ts      # 18 matrices de categorías
+│   ├── permissionWeights.ts     # Pesos y clasificación S/E por permiso
 │   └── permissionDescriptions.ts # Descripciones amigables ES/EN
 ├── hooks/
 │   └── useExtensions.ts         # Hook React para chrome.management
@@ -107,8 +106,8 @@ src/
 ### Fórmula (Sección 4.4 de la tesis)
 
 ```
-Riesgo = Σ(S) [Peso_i × CoherenciaFactor_i × f(H)]
-        + Σ(E) [Peso_j × CoherenciaFactor_j × 1.0]
+Riesgo = Σ(S) [Peso_i × f(H)]
+        + Σ(E) [Peso_j]
 ```
 
 Donde:
@@ -125,14 +124,6 @@ Donde:
 | Dominios específicos (ej: `https://example.com/*`) | 0.5 |
 | Wildcards amplios (`*://*.domain.com/*`) | 0.8 |
 | `<all_urls>`, `*://*/*`, `http://*/*`, `https://*/*` | 1.0 |
-
-### Factores de Coherencia
-
-| Clasificación | Factor | Descripción |
-|---------------|--------|-------------|
-| `expected` | × 0.1 | Permiso coherente con la categoría declarada |
-| `suspicious` | × 1.0 | Requiere justificación, posiblemente legítimo |
-| `incoherent` | × 5.0 | Sin justificación razonable → alerta crítica |
 
 ### Pesos por Nivel de Riesgo
 
@@ -156,25 +147,10 @@ Donde:
 ### Implementación: `src/engine/riskEngine.ts`
 
 Funciones exportadas:
-- `computeRisk(permissions, hostPermissions, category)` → `RiskBreakdown`
+- `computeRisk(permissions, hostPermissions)` → `RiskBreakdown`
 - `computeHostFactor(hostPermissions, permissions)` → `number`
-- `classifyPermission(permission, matrix)` → `CoherenceLevel`
 - `scoreToLevel(score)` → `RiskLevel`
-- `analyzeExtension(ext, categoryOverride?)` → `InstalledExtension`
-- `inferCategory(ext)` → `string` (heurística por nombre/descripción)
-
-### Matrices de Categoría: `src/data/categoryMatrices.ts`
-
-18 matrices para las categorías de la Chrome Web Store:
-
-| Grupo | Categorías |
-|-------|-----------|
-| Productividad | Developer Tools, Workflow & Planning, Education, Communication, Tools |
-| Estilo de Vida | Entertainment, Games, Shopping, News & Weather, Social Networking |
-| Personalización | Art & Design, Accessibility, Privacy & Security |
-| Sin categoría explícita | Search Tools, Sports, Health, Finance, Travel |
-
-Cada matriz define tres listas: `expected`, `suspicious`, `incoherent`.
+- `analyzeExtension(ext)` → `InstalledExtension`
 
 ---
 
@@ -368,7 +344,6 @@ Todas las claves se guardan en `chrome.storage.local`:
 | `activityLog` | `ActivityEvent[]` | Log de eventos de seguridad | 100 entradas (FIFO) |
 | `changeHistory` | `object[]` | Historial de actualizaciones con nuevos permisos | 100 entradas (FIFO) |
 | `extSnapshots` | `Record<string, Snapshot>` | Huella digital de permisos por extensión | Una por extensión |
-| `categoryOverrides` | `Record<string, string>` | Categoría manual asignada por el usuario | Una por extensión |
 | `protectionEnabled` | `boolean` | Activar/desactivar la protección global | — |
 | `blockedToday` | `number` | Extensiones bloqueadas hoy | Reset diario |
 | `blockedTotal` | `number` | Total histórico de bloqueos | Acumulativo |
@@ -428,9 +403,8 @@ service-worker → dist/service-worker.js (iife, no chunks)
 
 | Objetivo (Tesis) | Estado | Implementación |
 |-----------------|--------|----------------|
-| Motor de evaluación de riesgo (Sección 4.4) | ✅ Completo | `riskEngine.ts`, `permissionWeights.ts`, `categoryMatrices.ts` |
-| Fórmula: Peso × Coherencia × f(H) | ✅ Completo | `computeRisk()` en `riskEngine.ts` |
-| 18 matrices de categorías | ✅ Completo | `categoryMatrices.ts` |
+| Motor de evaluación de riesgo (Sección 4.4) | ✅ Completo | `riskEngine.ts`, `permissionWeights.ts` |
+| Fórmula: Peso × f(H) para permisos sensibles a host + Peso para permisos estáticos | ✅ Completo | `computeRisk()` en `riskEngine.ts` |
 | 58+ permisos clasificados | ✅ Completo | `permissionWeights.ts` |
 | Factor f(H) con 5 niveles | ✅ Completo | `computeHostFactor()` |
 | Umbrales 0/10/25/50 | ✅ Completo | `scoreToLevel()` |
@@ -445,8 +419,6 @@ service-worker → dist/service-worker.js (iife, no chunks)
 | CRUD de zonas UI | ✅ Completo | `ContextZones.tsx` |
 | Interfaz bilingüe ES/EN | ✅ Completo | `i18n/locales/*.json` |
 | Exclusión de sí misma del análisis | ✅ Completo | `ext.id === chrome.runtime.id` check |
-| Inferencia de categoría por heurística | ✅ Completo | `inferCategory()` en `riskEngine.ts` |
-| Override de categoría por usuario | ✅ Completo | `categoryOverrides` en storage |
 | Contador de bloqueos (hoy/total) | ✅ Completo | `incrementBlocked()` + reset diario |
 
 ### Diferencias con el Whitepaper de Google (implementadas)

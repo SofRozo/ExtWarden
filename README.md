@@ -13,15 +13,14 @@ Extensión de Chrome que analiza los permisos de tus extensiones instaladas y te
 ## ¿Cómo funciona?
 
 1. La extensión lee la lista de extensiones instaladas y sus permisos usando la API de Chrome.
-2. Cada extensión recibe un puntaje de riesgo basado en sus permisos, la categoría de la extensión, y el alcance de sus permisos de host.
+2. Cada extensión recibe un puntaje de riesgo basado en sus permisos y el alcance de sus permisos de host.
 3. Cuando navegas a un sitio que marcaste como sensible, se te avisa si alguna extensión riesgosa está activa.
 
 ## Fórmula de riesgo
 
-`R = Σ(Peso × Factor_Coherencia × f(H))` para permisos sensibles al host + `Σ(Peso × Factor_Coherencia)` para permisos estáticos.
+`R = Σ(Peso × f(H))` para permisos sensibles al host + `Σ(Peso)` para permisos estáticos.
 
 - 69 permisos de Chrome clasificados en 4 niveles de severidad
-- 18 categorías de la Chrome Web Store con matrices de coherencia
 - Factor de alcance de host: 0.0 (ninguno) → 0.3 (activeTab) → 0.5 (específico) → 0.8 (wildcard) → 1.0 (<all_urls>)
 
 ## Interpretación del riesgo

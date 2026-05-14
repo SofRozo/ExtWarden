@@ -53,7 +53,6 @@
     },
     "columns": {
       "extension": "EXTENSION",
-      "category": "CATEGORY",
       "permissions": "SENSITIVE PERMISSIONS",
       "risk": "RISK LEVEL",
       "action": "STATUS"
@@ -111,7 +110,7 @@
     "disableExt": "Disable extension"
   },
   "about": {
-    "description": "ExtWarden analyzes installed Chrome extensions and protects you on sensitive sites using a risk model based on permissions, functional categories, and host scope.",
+    "description": "ExtWarden analyzes installed Chrome extensions and protects you on sensitive sites using a risk model based on permissions and host scope.",
     "featuresTitle": "Features",
     "features": {
       "riskAudit": "Semi-quantitative permission audit engine",

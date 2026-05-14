@@ -60,11 +60,10 @@ export async function getInstalledExtensions(): Promise<InstalledExtension[]> {
     const { DUMMY_EXTENSIONS } = await import('../data/dummyData');
     return DUMMY_EXTENSIONS;
   }
-  const categoryOverrides = await storageGet<Record<string, string>>('categoryOverrides', {});
   const all = await chrome.management.getAll();
   return all
     .filter(e => e.type === 'extension' && e.id !== chrome.runtime.id)
-    .map(e => analyzeExtension(e, categoryOverrides[e.id]))
+    .map(e => analyzeExtension(e))
     .sort((a, b) => b.riskScore - a.riskScore);
 }
 
@@ -76,12 +75,6 @@ export function setExtensionEnabled(id: string, enabled: boolean): Promise<void>
       else resolve();
     });
   });
-}
-
-export async function setCategoryOverride(id: string, category: string): Promise<void> {
-  const overrides = await storageGet<Record<string, string>>('categoryOverrides', {});
-  overrides[id] = category;
-  await storageSet('categoryOverrides', overrides);
 }
 
 // ── Zones ─────────────────────────────────────────────────────────────────────

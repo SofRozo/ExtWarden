@@ -8,7 +8,6 @@ export interface InstalledExtension {
   icons: { size: number; url: string }[];
   permissions: string[];
   hostPermissions: string[];
-  category: string;
   riskScore: number;
   riskLevel: RiskLevel;
   lowPermissions: string[];

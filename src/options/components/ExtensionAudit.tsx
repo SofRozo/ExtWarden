@@ -815,7 +815,6 @@ export default function ExtensionAudit() {
           <thead>
             <tr className="border-b border-surface-100">
               <th className="text-left px-6 py-3.5 text-[11px] font-semibold text-gray-400 tracking-[0.06em]">{t('audit.columns.extension')}</th>
-              <th className="text-left px-4 py-3.5 text-[11px] font-semibold text-gray-400 tracking-[0.06em]">{t('audit.columns.category')}</th>
               <th className="text-left px-4 py-3.5 text-[11px] font-semibold text-gray-400 tracking-[0.06em]">{t('audit.columns.permissions')}</th>
               <th className="text-left px-4 py-3.5 text-[11px] font-semibold text-gray-400 tracking-[0.06em]">{t('audit.columns.risk')}</th>
               <th className="text-right px-6 py-3.5 text-[11px] font-semibold text-gray-400 tracking-[0.06em]">{t('audit.columns.action')}</th>
@@ -824,7 +823,7 @@ export default function ExtensionAudit() {
           <tbody className="divide-y divide-surface-100">
             {paged.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-6 py-12 text-center text-sm text-gray-400">
+                <td colSpan={4} className="px-6 py-12 text-center text-sm text-gray-400">
                   {lang === 'es' ? 'No se encontraron extensiones' : 'No extensions found'}
                 </td>
               </tr>
@@ -969,13 +968,6 @@ function ExtRow({
             <p className="text-[11px] text-gray-400">v{ext.version}</p>
           </div>
         </div>
-      </td>
-
-      {/* Category */}
-      <td className="px-4 py-4 text-sm text-gray-600">
-        {isCompleted && report?.agente1?.categoria
-          ? report.agente1.categoria
-          : ext.category}
       </td>
 
       {/* Permissions */}

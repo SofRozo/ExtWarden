@@ -8,7 +8,7 @@
  * 5. Track blocked counters & activity log
  */
 
-import { computeRisk, inferCategory } from '../engine/riskEngine';
+import { computeRisk } from '../engine/riskEngine';
 
 interface CriticalZone {
   id: string;
@@ -169,9 +169,6 @@ async function evaluateTab(tabId: number, url: string): Promise<void> {
     return;
   }
 
-  // Get category overrides
-  const categoryOverrides = await getFromStorage<Record<string, string>>('categoryOverrides', {});
-
   // Evaluate ALL extensions
   const extensions = await chrome.management.getAll();
   console.log('[ExtWarden] total extensions found:', extensions.length);
@@ -184,10 +181,9 @@ async function evaluateTab(tabId: number, url: string): Promise<void> {
 
     const permissions = ext.permissions ?? [];
     const hostPermissions = ext.hostPermissions ?? [];
-    const category = categoryOverrides[ext.id] ?? inferCategory(ext);
-    const risk = computeRisk(permissions, hostPermissions, category);
+    const risk = computeRisk(permissions, hostPermissions);
 
-    console.log(`[ExtWarden] "${ext.name}" → category=${category} score=${risk.score} level=${risk.level}`);
+    console.log(`[ExtWarden] "${ext.name}" → score=${risk.score} level=${risk.level}`);
     return risk.level === 'critical' || risk.level === 'high';
   });
 
