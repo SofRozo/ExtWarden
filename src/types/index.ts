@@ -186,6 +186,47 @@ export interface AgentFinding {
   snippet?: string;
 }
 
+// ── User-facing risk summary (10 categories) ─────────────────────────────────
+// These come from the backend's UserRiskSummaryService and are what the user
+// actually reads. They translate the raw findings into 10 categories matched
+// to the user's questions ("can it read my pages?", "can it capture keys?", ...).
+
+export type UserRiskSummaryId =
+  | 'acceso_general_navegador'
+  | 'modificacion_paginas'
+  | 'lectura_informacion'
+  | 'captura_credenciales'
+  | 'keylogging'
+  | 'seguimiento_privacidad'
+  | 'manipulacion_trafico'
+  | 'acceso_historial'
+  | 'descargas_archivos'
+  | 'ofuscacion_transparencia';
+
+export type UserRiskStatus =
+  | 'no_detectado'
+  | 'capacidad'
+  | 'sospechoso'
+  | 'critico';
+
+export interface UserRiskSummaryItem {
+  id: UserRiskSummaryId;
+  titulo: string;
+  estado: UserRiskStatus;
+  resumen: string;
+  evidencias: string[];
+  /** IDs de reglas internas que explican por qué se marcó la categoría. */
+  reglas_activadas?: string[];
+  preguntas_responde: string[];
+}
+
+export interface UserFacingVerdict {
+  nivel: 'bajo' | 'medio' | 'alto' | 'critico';
+  veredicto: 'benigna' | 'sospechosa' | 'maliciosa';
+  resumen: string;
+  razones: string[];
+}
+
 /**
  * The new report shape returned by the backend. Plus a derived `riskLevel`
  * field computed by the frontend (service-worker.ts:normalizeReport) so
@@ -202,6 +243,10 @@ export interface SandboxReport {
   analysisDuration?: number;
   agente1: Agent1Output | null;
   dominios_contactados_prioritarios: string[];
+  /** Resumen orientado a usuario final: una tarjeta por cada una de las 10 categorías. */
+  resumen_usuario: UserRiskSummaryItem[];
+  /** Veredicto final legible derivado del resumen de usuario. */
+  veredicto_usuario: UserFacingVerdict | null;
   hallazgos_estaticos_positivos: string[];
   hallazgos_dinamicos_positivos: string[];
   estructura: {

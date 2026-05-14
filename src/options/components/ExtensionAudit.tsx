@@ -14,6 +14,9 @@ import type {
   AgentStep,
   Agent1Output,
   AgentFinding,
+  UserRiskSummaryItem,
+  UserRiskStatus,
+  UserFacingVerdict,
 } from '../../types';
 
 const ITEMS_PER_PAGE = 4;
@@ -344,6 +347,333 @@ function Agent1Summary({ agente1 }: { agente1: NonNullable<SandboxReport['agente
   );
 }
 
+// ── Manifest-only risk block (frontend computation) ──
+// Este bloque NO depende del backend. Se calcula desde los permisos declarados
+// en el manifest de la extensión instalada (ext.elevatedPermissions /
+// ext.criticalPermissions / ext.riskLevel). Se mantiene visible junto al
+// análisis profundo para que el usuario pueda comparar "lo que pide" vs
+// "lo que el código realmente hace".
+
+function ManifestRiskBlock({ ext }: { ext: InstalledExtension }) {
+  const { i18n } = useTranslation();
+  const lang = (i18n.language?.startsWith('en') ? 'en' : 'es') as 'es' | 'en';
+  const badge = riskBadge[ext.riskLevel];
+  const elevated = ext.elevatedPermissions ?? [];
+  const critical = ext.criticalPermissions ?? [];
+  const low = ext.lowPermissions ?? [];
+  const totalSensitive = elevated.length + critical.length;
+
+  return (
+    <section className="rounded-xl border border-surface-200 bg-surface-50/50 p-4 space-y-3">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div>
+          <p className="text-[10px] font-bold tracking-wider uppercase text-gray-500 mb-1">
+            1 · Riesgo rápido (permisos declarados)
+          </p>
+          <p className="text-[11px] text-gray-500 leading-snug">
+            Cálculo del frontend leyendo el manifest de la extensión. Mide lo
+            que <strong>pide</strong> hacer, no lo que efectivamente hace.
+          </p>
+        </div>
+        <span
+          className={`inline-flex items-center text-xs font-bold px-3 py-1 rounded-full ${badge.color}`}
+        >
+          {ext.riskLevel.toUpperCase()} · {ext.riskScore}
+        </span>
+      </div>
+      <div className="grid grid-cols-3 gap-2 text-center">
+        <div className="rounded-lg bg-white border border-surface-100 px-2 py-1.5">
+          <p className="text-base font-bold text-red-600">{critical.length}</p>
+          <p className="text-[9px] uppercase font-semibold text-gray-400 tracking-wide">
+            Críticos
+          </p>
+        </div>
+        <div className="rounded-lg bg-white border border-surface-100 px-2 py-1.5">
+          <p className="text-base font-bold text-amber-600">{elevated.length}</p>
+          <p className="text-[9px] uppercase font-semibold text-gray-400 tracking-wide">
+            Elevados
+          </p>
+        </div>
+        <div className="rounded-lg bg-white border border-surface-100 px-2 py-1.5">
+          <p className="text-base font-bold text-gray-500">{low.length}</p>
+          <p className="text-[9px] uppercase font-semibold text-gray-400 tracking-wide">
+            Bajos
+          </p>
+        </div>
+      </div>
+      {totalSensitive > 0 && (
+        <div>
+          <p className="text-[10px] font-semibold tracking-wider uppercase text-gray-400 mb-1">
+            Permisos sensibles declarados
+          </p>
+          <div className="flex flex-wrap gap-1">
+            {[...critical, ...elevated].slice(0, 12).map((perm) => {
+              const isCritical = critical.includes(perm);
+              return (
+                <span
+                  key={perm}
+                  className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
+                    isCritical
+                      ? 'bg-red-50 text-red-700 border border-red-200'
+                      : 'bg-amber-50 text-amber-700 border border-amber-200'
+                  }`}
+                  title={getPermissionDescription(perm, lang)}
+                >
+                  {perm}
+                </span>
+              );
+            })}
+            {totalSensitive > 12 && (
+              <span className="text-[10px] text-gray-400 font-medium px-1.5 py-0.5">
+                +{totalSensitive - 12} más
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ── User-facing verdict banner (backend deep analysis) ──
+// Este bloque viene del UserRiskSummaryService del backend. Da el veredicto
+// final basado en lo que el código realmente hace (análisis estático + AST +
+// taint flow + dynamic Stagehand).
+
+const USER_VERDICT_STYLES: Record<
+  UserFacingVerdict['nivel'],
+  { card: string; badge: string; dot: string; label: string }
+> = {
+  critico: {
+    card: 'border-red-300 bg-red-50/60',
+    badge: 'bg-red-100 text-red-700',
+    dot: '#DC2626',
+    label: 'Crítico',
+  },
+  alto: {
+    card: 'border-orange-300 bg-orange-50/60',
+    badge: 'bg-orange-100 text-orange-700',
+    dot: '#EA580C',
+    label: 'Alto',
+  },
+  medio: {
+    card: 'border-amber-300 bg-amber-50/60',
+    badge: 'bg-amber-100 text-amber-700',
+    dot: '#CA8A04',
+    label: 'Medio',
+  },
+  bajo: {
+    card: 'border-emerald-300 bg-emerald-50/60',
+    badge: 'bg-emerald-100 text-emerald-700',
+    dot: '#16A34A',
+    label: 'Bajo',
+  },
+};
+
+const USER_VEREDICTO_LABEL: Record<
+  UserFacingVerdict['veredicto'],
+  string
+> = {
+  maliciosa: 'Maliciosa',
+  sospechosa: 'Sospechosa',
+  benigna: 'Benigna',
+};
+
+function UserVerdictBanner({ verdict }: { verdict: UserFacingVerdict }) {
+  const style = USER_VERDICT_STYLES[verdict.nivel];
+  return (
+    <section className={`rounded-xl border-2 p-4 space-y-3 ${style.card}`}>
+      <div>
+        <p className="text-[10px] font-bold tracking-wider uppercase text-gray-500 mb-1">
+          2 · Veredicto del análisis profundo
+        </p>
+        <p className="text-[11px] text-gray-500 leading-snug">
+          Cálculo del backend tras parsear el código, seguir flujos de datos
+          y evaluar 10 categorías de comportamiento.
+        </p>
+      </div>
+      <div className="flex items-center gap-2 flex-wrap">
+        <span
+          className={`inline-flex items-center gap-1.5 text-sm font-bold px-3 py-1.5 rounded-full ${style.badge}`}
+        >
+          <span
+            className="w-2 h-2 rounded-full"
+            style={{ backgroundColor: style.dot }}
+          />
+          {USER_VEREDICTO_LABEL[verdict.veredicto]} · {style.label}
+        </span>
+      </div>
+      <p className="text-sm text-gray-800 leading-relaxed">{verdict.resumen}</p>
+      {verdict.razones.length > 0 && (
+        <div>
+          <p className="text-[10px] font-semibold tracking-wider uppercase text-gray-500 mb-1">
+            Razones
+          </p>
+          <ul className="space-y-1">
+            {verdict.razones.map((r, i) => (
+              <li key={i} className="text-[12px] text-gray-700 leading-snug">
+                • {r}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </section>
+  );
+}
+
+// ── 10 categories grid ──
+
+const CATEGORY_ICON: Record<UserRiskSummaryItem['id'], string> = {
+  acceso_general_navegador: '🌐',
+  modificacion_paginas: '✏️',
+  lectura_informacion: '👁️',
+  captura_credenciales: '🔑',
+  keylogging: '⌨️',
+  seguimiento_privacidad: '📡',
+  manipulacion_trafico: '🛣️',
+  acceso_historial: '🕘',
+  descargas_archivos: '⬇️',
+  ofuscacion_transparencia: '🌫️',
+};
+
+const STATUS_STYLES: Record<
+  UserRiskStatus,
+  { card: string; badge: string; label: string }
+> = {
+  critico: {
+    card: 'border-red-200 bg-red-50/40',
+    badge: 'bg-red-100 text-red-700',
+    label: 'Crítico',
+  },
+  sospechoso: {
+    card: 'border-amber-200 bg-amber-50/40',
+    badge: 'bg-amber-100 text-amber-700',
+    label: 'Sospechoso',
+  },
+  capacidad: {
+    card: 'border-blue-200 bg-blue-50/40',
+    badge: 'bg-blue-100 text-blue-700',
+    label: 'Capacidad',
+  },
+  no_detectado: {
+    card: 'border-surface-200 bg-white',
+    badge: 'bg-surface-100 text-gray-500',
+    label: 'No detectado',
+  },
+};
+
+const STATUS_PRIORITY: Record<UserRiskStatus, number> = {
+  critico: 4,
+  sospechoso: 3,
+  capacidad: 2,
+  no_detectado: 1,
+};
+
+function UserRiskCategoryCard({ item }: { item: UserRiskSummaryItem }) {
+  const style = STATUS_STYLES[item.estado];
+  const [expanded, setExpanded] = useState(item.estado === 'critico');
+  const icon = CATEGORY_ICON[item.id] ?? '•';
+
+  return (
+    <div className={`rounded-xl border ${style.card} p-3 space-y-2`}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start gap-2 min-w-0">
+          <span className="text-base leading-none mt-0.5">{icon}</span>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-gray-800 leading-snug">
+              {item.titulo}
+            </p>
+            <p className="text-[12px] text-gray-600 leading-snug mt-0.5">
+              {item.resumen}
+            </p>
+          </div>
+        </div>
+        <span
+          className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase flex-shrink-0 ${style.badge}`}
+        >
+          {style.label}
+        </span>
+      </div>
+
+      {item.evidencias.length > 0 && (
+        <ul className="space-y-1 pl-1">
+          {item.evidencias.slice(0, expanded ? undefined : 3).map((e, i) => (
+            <li key={i} className="text-[11px] text-gray-700 leading-snug">
+              · {e}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {(item.evidencias.length > 3 || item.preguntas_responde.length > 0) && (
+        <button
+          onClick={() => setExpanded((v) => !v)}
+          className="text-[11px] text-brand-600 hover:text-brand-700 font-medium"
+        >
+          {expanded ? 'Ocultar detalle' : 'Ver más →'}
+        </button>
+      )}
+
+      {expanded && item.preguntas_responde.length > 0 && (
+        <div className="mt-1 pt-2 border-t border-surface-100">
+          <p className="text-[10px] font-semibold tracking-wider uppercase text-gray-400 mb-1">
+            Preguntas que responde
+          </p>
+          <ul className="space-y-0.5">
+            {item.preguntas_responde.map((q, i) => (
+              <li
+                key={i}
+                className="text-[11px] text-gray-500 italic leading-snug"
+              >
+                {q}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {expanded &&
+        item.reglas_activadas &&
+        item.reglas_activadas.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-1">
+            {item.reglas_activadas.map((r) => (
+              <span
+                key={r}
+                className="text-[9px] font-mono px-1 py-0.5 rounded bg-surface-100 text-gray-500"
+              >
+                {r}
+              </span>
+            ))}
+          </div>
+        )}
+    </div>
+  );
+}
+
+function UserRiskCategoriesGrid({
+  items,
+}: {
+  items: UserRiskSummaryItem[];
+}) {
+  // Ordenar por severidad para que el usuario vea lo importante primero.
+  const sorted = [...items].sort(
+    (a, b) => STATUS_PRIORITY[b.estado] - STATUS_PRIORITY[a.estado],
+  );
+  return (
+    <section>
+      <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">
+        Comportamientos detectados (10 categorías)
+      </h4>
+      <div className="space-y-2">
+        {sorted.map((item) => (
+          <UserRiskCategoryCard key={item.id} item={item} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 // ── Skeleton while analyzing ──
 
 function SkeletonAnalysis() {
@@ -418,7 +748,7 @@ function ExtensionDrawer({
 
           {isCompleted && report && (
             <>
-              {/* Risk badge */}
+              {/* Risk badge — derived backend score */}
               <div className="flex items-center gap-2 flex-wrap">
                 <span
                   className={`inline-flex items-center gap-1.5 text-sm font-bold px-3 py-1.5 rounded-full ${backendRiskBadge[report.riskLevel]?.color ?? 'bg-gray-100 text-gray-600'}`}
@@ -433,6 +763,19 @@ function ExtensionDrawer({
                   Verificado ✓
                 </span>
               </div>
+
+              {/* Manifest-only quick risk (frontend computation) */}
+              <ManifestRiskBlock ext={ext} />
+
+              {/* Deep static-analysis verdict (backend) */}
+              {report.veredicto_usuario && (
+                <UserVerdictBanner verdict={report.veredicto_usuario} />
+              )}
+
+              {/* 10 user-risk categories grid (backend) */}
+              {report.resumen_usuario && report.resumen_usuario.length > 0 && (
+                <UserRiskCategoriesGrid items={report.resumen_usuario} />
+              )}
 
               {/* Agent 1 summary */}
               {report.agente1 && <Agent1Summary agente1={report.agente1} />}
@@ -460,10 +803,10 @@ function ExtensionDrawer({
                 )}
               </section>
 
-              {/* Static narrative findings */}
+              {/* Static narrative findings — detalle técnico por archivo/línea */}
               <section>
                 <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">
-                  Resultados de análisis estático
+                  Hallazgos técnicos por archivo
                 </h4>
                 {report.hallazgos_estaticos_positivos.length === 0 ? (
                   <p className="text-sm text-gray-400 italic">

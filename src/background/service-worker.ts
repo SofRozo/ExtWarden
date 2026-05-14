@@ -416,10 +416,29 @@ type Agent1OutputSW = {
   razon_nivel_riesgo: string;
 };
 
+type UserRiskSummaryItemSW = {
+  id: string;
+  titulo: string;
+  estado: 'no_detectado' | 'capacidad' | 'sospechoso' | 'critico';
+  resumen: string;
+  evidencias: string[];
+  reglas_activadas?: string[];
+  preguntas_responde: string[];
+};
+
+type UserFacingVerdictSW = {
+  nivel: 'bajo' | 'medio' | 'alto' | 'critico';
+  veredicto: 'benigna' | 'sospechosa' | 'maliciosa';
+  resumen: string;
+  razones: string[];
+};
+
 interface SandboxReportSW {
   jobId: string;
   agente1: Agent1OutputSW | null;
   dominios_contactados_prioritarios: string[];
+  resumen_usuario: UserRiskSummaryItemSW[];
+  veredicto_usuario: UserFacingVerdictSW | null;
   hallazgos_estaticos_positivos: string[];
   hallazgos_dinamicos_positivos: string[];
   estructura: {
@@ -534,6 +553,15 @@ function normalizeReport(raw: Record<string, unknown>): SandboxReportSW {
     ? (raw.navegacionDominios as any[])
     : [];
 
+  // Pass through resumen_usuario / veredicto_usuario as-is — they're already
+  // a stable contract from the backend (10 categories, fixed status values).
+  // The frontend's category grid renders them directly.
+  const resumenUsuario = Array.isArray(raw.resumen_usuario)
+    ? (raw.resumen_usuario as UserRiskSummaryItemSW[])
+    : [];
+  const veredictoUsuario = (raw.veredicto_usuario ??
+    null) as UserFacingVerdictSW | null;
+
   return {
     jobId: toStr(raw.jobId),
     agente1,
@@ -541,6 +569,8 @@ function normalizeReport(raw: Record<string, unknown>): SandboxReportSW {
     dominios_contactados_prioritarios: toStringArray(
       raw.dominios_contactados_prioritarios,
     ),
+    resumen_usuario: resumenUsuario,
+    veredicto_usuario: veredictoUsuario,
     hallazgos_estaticos_positivos: toStringArray(
       raw.hallazgos_estaticos_positivos,
     ),
