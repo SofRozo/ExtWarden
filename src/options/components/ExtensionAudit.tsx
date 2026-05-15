@@ -287,63 +287,148 @@ function Agent1Summary({ agente1 }: { agente1: NonNullable<SandboxReport['agente
     ? verdictBadge[agente1.veredicto_global]
     : null;
   return (
-    <div className="rounded-xl border border-brand-100 bg-brand-50/40 p-4 space-y-3">
-      {verdict && (
+    <section className="space-y-3">
+      {/* Section header */}
+      <div>
+        <p className="text-[10px] font-bold tracking-wider uppercase text-gray-500 mb-1">
+          3 · Opinión del Agente IA
+        </p>
+        <p className="text-[11px] text-gray-500 leading-snug">
+          El agente leyó el código, cruzó los hallazgos con el propósito declarado
+          y emitió su propia evaluación.
+        </p>
+      </div>
+
+      <div className="rounded-xl border border-brand-100 bg-brand-50/40 p-4 space-y-3">
+        {/* Veredicto + categoría */}
         <div className="flex items-center gap-2 flex-wrap">
-          <span className={`inline-flex items-center text-xs font-bold px-2.5 py-1 rounded-full ${verdict.color}`}>
-            Veredicto: {verdict.label}
+          {verdict && (
+            <span className={`inline-flex items-center text-xs font-bold px-2.5 py-1 rounded-full ${verdict.color}`}>
+              Veredicto: {verdict.label}
+            </span>
+          )}
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-white border border-surface-200 text-gray-600 font-medium uppercase tracking-wide">
+            {agente1.categoria}
+          </span>
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-white border border-surface-200 text-gray-600 font-medium">
+            Riesgo: {initialRiskLabel[agente1.nivel_riesgo_inicial] ?? agente1.nivel_riesgo_inicial}
           </span>
         </div>
-      )}
-      {agente1.explicacion && (
-        <p className="text-sm text-gray-800 leading-relaxed">
-          {agente1.explicacion}
-        </p>
-      )}
-      <div>
-        <p className="text-[10px] font-bold tracking-wider uppercase text-brand-700 mb-1">
-          Propósito declarado
-        </p>
-        <p className="text-sm text-gray-800 leading-snug">{agente1.proposito}</p>
-      </div>
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-[10px] px-2 py-0.5 rounded-full bg-white border border-surface-200 text-gray-600 font-medium uppercase tracking-wide">
-          {agente1.categoria}
-        </span>
-        <span className="text-[10px] px-2 py-0.5 rounded-full bg-white border border-surface-200 text-gray-600 font-medium">
-          Riesgo inicial: {initialRiskLabel[agente1.nivel_riesgo_inicial] ?? agente1.nivel_riesgo_inicial}
-        </span>
-      </div>
-      {agente1.razon_nivel_riesgo && (
-        <p className="text-[12px] text-gray-600 leading-relaxed italic">
-          {agente1.razon_nivel_riesgo}
-        </p>
-      )}
-      {agente1.acciones_esperadas.length > 0 && (
+
+        {/* Evaluación en lenguaje natural */}
+        {agente1.explicacion && (
+          <div className="bg-white rounded-lg border border-brand-100 p-3">
+            <p className="text-[10px] font-bold tracking-wider uppercase text-brand-700 mb-1.5">
+              Evaluación del agente
+            </p>
+            <p className="text-sm text-gray-800 leading-relaxed">
+              {agente1.explicacion}
+            </p>
+            {agente1.razon_nivel_riesgo && (
+              <p className="text-[12px] text-gray-500 leading-relaxed italic mt-1.5">
+                {agente1.razon_nivel_riesgo}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Propósito real detectado */}
         <div>
-          <p className="text-[10px] font-semibold tracking-wider uppercase text-gray-400 mb-1">
-            Acciones esperadas
+          <p className="text-[10px] font-bold tracking-wider uppercase text-brand-700 mb-1">
+            Propósito real detectado
           </p>
-          <ul className="space-y-0.5">
-            {agente1.acciones_esperadas.map((a, i) => (
-              <li key={i} className="text-[12px] text-gray-600 leading-snug">• {a}</li>
-            ))}
-          </ul>
+          <p className="text-sm text-gray-800 leading-snug">{agente1.proposito}</p>
         </div>
-      )}
-      {agente1.acciones_NO_esperadas.length > 0 && (
-        <div>
-          <p className="text-[10px] font-semibold tracking-wider uppercase text-gray-400 mb-1">
-            Acciones NO esperadas
-          </p>
-          <ul className="space-y-0.5">
-            {agente1.acciones_NO_esperadas.map((a, i) => (
-              <li key={i} className="text-[12px] text-gray-600 leading-snug">• {a}</li>
-            ))}
-          </ul>
+
+        {/* Acciones esperadas vs NO esperadas */}
+        <div className="grid grid-cols-2 gap-3">
+          {agente1.acciones_esperadas.length > 0 && (
+            <div className="rounded-lg bg-emerald-50 border border-emerald-100 p-2.5">
+              <p className="text-[10px] font-semibold tracking-wider uppercase text-emerald-700 mb-1">
+                Esperado
+              </p>
+              <ul className="space-y-0.5">
+                {agente1.acciones_esperadas.map((a, i) => (
+                  <li key={i} className="text-[11px] text-emerald-800 leading-snug">✓ {a}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {agente1.acciones_NO_esperadas.length > 0 && (
+            <div className="rounded-lg bg-red-50 border border-red-100 p-2.5">
+              <p className="text-[10px] font-semibold tracking-wider uppercase text-red-700 mb-1">
+                No esperado
+              </p>
+              <ul className="space-y-0.5">
+                {agente1.acciones_NO_esperadas.map((a, i) => (
+                  <li key={i} className="text-[11px] text-red-800 leading-snug">✗ {a}</li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
-      )}
-    </div>
+
+        {/* Señales en el manifest */}
+        {agente1.senales_alarma_manifest && agente1.senales_alarma_manifest.length > 0 && (
+          <div>
+            <p className="text-[10px] font-semibold tracking-wider uppercase text-gray-400 mb-1.5">
+              Señales detectadas en el manifest
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {agente1.senales_alarma_manifest.map((s, i) => (
+                <span
+                  key={i}
+                  className="text-[10px] px-2 py-0.5 rounded bg-amber-50 border border-amber-200 text-amber-800 font-medium"
+                >
+                  {s}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Principio de mínimo privilegio */}
+        {agente1.violacion_minimo_privilegio && (
+          <div className={`rounded-lg border p-3 ${
+            agente1.violacion_minimo_privilegio.detectada
+              ? 'bg-orange-50 border-orange-200'
+              : 'bg-emerald-50 border-emerald-100'
+          }`}>
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <span className={`text-base leading-none ${
+                agente1.violacion_minimo_privilegio.detectada ? 'text-orange-600' : 'text-emerald-600'
+              }`}>
+                {agente1.violacion_minimo_privilegio.detectada ? '⚠' : '✓'}
+              </span>
+              <p className={`text-[10px] font-bold tracking-wider uppercase ${
+                agente1.violacion_minimo_privilegio.detectada ? 'text-orange-700' : 'text-emerald-700'
+              }`}>
+                Principio de mínimo privilegio
+              </p>
+            </div>
+            {agente1.violacion_minimo_privilegio.detectada ? (
+              <>
+                <p className="text-[11px] text-orange-800 mb-1.5 leading-snug">
+                  Esta extensión pide más permisos de los que necesita para funcionar.
+                </p>
+                <ul className="space-y-1">
+                  {agente1.violacion_minimo_privilegio.razones.map((r, i) => (
+                    <li key={i} className="text-[11px] text-orange-900 leading-snug flex gap-1.5">
+                      <span className="mt-0.5 shrink-0">•</span>
+                      <span>{r}</span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              <p className="text-[11px] text-emerald-800 leading-snug">
+                Los permisos que solicita son acordes a su función declarada.
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
 

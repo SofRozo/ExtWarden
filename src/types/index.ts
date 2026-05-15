@@ -172,6 +172,11 @@ export interface Agent1Output {
   veredicto_global?: 'maliciosa' | 'sospechosa' | 'benigna';
   /** 2-4 sentence executive summary written for the end user. */
   explicacion?: string;
+  /** Whether the extension violates the Principle of Least Privilege (PoLP). */
+  violacion_minimo_privilegio?: {
+    detectada: boolean;
+    razones: string[];
+  };
   /** Findings the agent discovered by reading the source code directly.
    *  Complementary to the deterministic per-finding narratives. */
   hallazgos_propios?: AgentFinding[];
@@ -201,7 +206,10 @@ export type UserRiskSummaryId =
   | 'manipulacion_trafico'
   | 'acceso_historial'
   | 'descargas_archivos'
-  | 'ofuscacion_transparencia';
+  | 'ofuscacion_transparencia'
+  | 'abuso_management'
+  | 'mineria_recursos'
+  | 'fingerprinting_severo';
 
 export type UserRiskStatus =
   | 'no_detectado'
