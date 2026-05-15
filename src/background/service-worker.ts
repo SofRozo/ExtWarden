@@ -22,7 +22,7 @@ interface ActivityEvent {
   extensionId: string;
   extensionName: string;
   module: string;
-  action: 'blocked' | 'warning' | 'allowed' | 'installed' | 'removed';
+  action: 'blocked' | 'warning' | 'allowed' | 'installed' | 'removed' | 'updated';
   detail: string;
 }
 
@@ -414,6 +414,10 @@ type Agent1OutputSW = {
   senales_alarma_manifest: string[];
   nivel_riesgo_inicial: 'bajo' | 'medio' | 'alto' | 'critico';
   razon_nivel_riesgo: string;
+  veredicto_global?: 'maliciosa' | 'sospechosa' | 'benigna';
+  explicacion?: string;
+  violacion_minimo_privilegio?: { detectada: boolean; razones: string[] };
+  hallazgos_propios?: unknown[];
 };
 
 type UserRiskSummaryItemSW = {
@@ -435,6 +439,13 @@ type UserFacingVerdictSW = {
 
 interface SandboxReportSW {
   jobId: string;
+  extensionId?: string;
+  extensionName?: string;
+  extensionVersion?: string;
+  extensionAuthor?: string;
+  crxHash?: string;
+  analysisTimestamp?: string;
+  analysisDuration?: number;
   agente1: Agent1OutputSW | null;
   dominios_contactados_prioritarios: string[];
   resumen_usuario: UserRiskSummaryItemSW[];
@@ -564,6 +575,13 @@ function normalizeReport(raw: Record<string, unknown>): SandboxReportSW {
 
   return {
     jobId: toStr(raw.jobId),
+    extensionId: typeof raw.extensionId === 'string' ? raw.extensionId : undefined,
+    extensionName: typeof raw.extensionName === 'string' ? raw.extensionName : undefined,
+    extensionVersion: typeof raw.extensionVersion === 'string' ? raw.extensionVersion : undefined,
+    extensionAuthor: typeof raw.extensionAuthor === 'string' ? raw.extensionAuthor : undefined,
+    crxHash: typeof raw.crxHash === 'string' ? raw.crxHash : undefined,
+    analysisTimestamp: typeof raw.analysisTimestamp === 'string' ? raw.analysisTimestamp : undefined,
+    analysisDuration: typeof raw.analysisDuration === 'number' ? raw.analysisDuration : undefined,
     agente1,
     navegacionDominios,
     dominios_contactados_prioritarios: toStringArray(

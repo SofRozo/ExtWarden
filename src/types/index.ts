@@ -55,6 +55,7 @@ export type BackendRiskLevel = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE';
 export type FileType =
   | 'content_script'
   | 'background'
+  | 'service_worker'
   | 'popup'
   | 'options_ui'
   | 'devtools'
@@ -93,7 +94,9 @@ export type StaticDiscoveryType =
   | 'inyeccion_dom'
   | 'lectura_cookies'
   | 'lectura_storage_navegador'
-  | 'correlacion_riesgo';
+  | 'correlacion_riesgo'
+  | 'interceptacion_api'
+  | 'suplantacion_api_navegador';
 
 export type DomainDiscoveryType = 'url_en_codigo' | 'host_permission_manifest';
 
@@ -264,7 +267,7 @@ export interface SandboxReport {
     resultado_dinamico: DynamicVerdictedFinding[];
   };
   /** Step-by-step agent decisions per priority domain — used to inspect what the LLM did. */
-  navegacionDominios?: DomainNavigationLog[];
+  navegacionDominios: DomainNavigationLog[];
   puntuacion_riesgo?: {
     score: number;
     level: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
