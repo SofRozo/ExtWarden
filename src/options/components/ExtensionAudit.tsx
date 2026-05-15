@@ -609,7 +609,7 @@ function UserVerdictBanner({ verdict }: { verdict: UserFacingVerdict }) {
 
 // ── 10 categories grid ──
 
-import { Globe, Edit3, Eye, Key, Keyboard, Radio, Route, Clock, Download, ShieldAlert } from 'lucide-react';
+import { Globe, Edit3, Eye, Key, Keyboard, Radio, Route, Clock, Download, ShieldAlert, Settings, Cpu, Fingerprint } from 'lucide-react';
 
 const CATEGORY_ICON: Record<UserRiskSummaryItem['id'], JSX.Element> = {
   acceso_general_navegador: <Globe size={20} className="text-blue-500" />,
@@ -622,6 +622,9 @@ const CATEGORY_ICON: Record<UserRiskSummaryItem['id'], JSX.Element> = {
   acceso_historial: <Clock size={20} className="text-gray-500" />,
   descargas_archivos: <Download size={20} className="text-cyan-500" />,
   ofuscacion_transparencia: <ShieldAlert size={20} className="text-slate-500" />,
+  abuso_management: <Settings size={20} className="text-rose-500" />,
+  mineria_recursos: <Cpu size={20} className="text-yellow-600" />,
+  fingerprinting_severo: <Fingerprint size={20} className="text-violet-500" />,
 };
 
 const STATUS_STYLES: Record<
