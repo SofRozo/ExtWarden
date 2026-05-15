@@ -595,7 +595,7 @@ async function submitToBackend(extensionId: string, extensionName: string): Prom
     const res = await fetchWithTimeout(`${BACKEND_URL}/analyze`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ extensionId }),
+      body: JSON.stringify({ extensionId, navigator: 'stagehand' }),
     });
     if (!res.ok) return false;
     const data = await res.json() as { jobId: string; status: string };
