@@ -125,6 +125,30 @@ export function computeRisk(
     score += contribution;
   }
 
+  // Los host_permissions también son permisos declarados con riesgo propio.
+  // Se clasifican según la tabla (patrón amplio → critical/10; específico → medium/2)
+  // pero NO se suman al score porque su impacto ya está capturado en f(H) × pesos S.
+  // Se incluyen aquí solo para que aparezcan en la lista visual de permisos.
+  for (const hp of hostPermissions) {
+    const isBroad =
+      hp === '<all_urls>' || hp === '*://*/*' ||
+      hp === 'http://*/*' || hp === 'https://*/*';
+    const level: PermissionLevel = isBroad ? 'critical' : 'medium';
+    if (isBroad) {
+      criticalPermissions.push(hp);
+    } else {
+      mediumAndHighPermissions.push(hp);
+    }
+    permissionDetails.push({
+      permission: hp,
+      weight: isBroad ? 10 : 2,
+      level,
+      hostSensitive: true,
+      hostFactor,
+      contribution: 0, // ya contabilizado vía f(H)
+    });
+  }
+
   score = Math.round(score * 10) / 10;
 
   return {
