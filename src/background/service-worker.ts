@@ -560,6 +560,14 @@ function normalizeReport(raw: Record<string, unknown>): SandboxReportSW {
     riskLevel = 'NONE';
   }
 
+  // El agente es la fuente de verdad del veredicto — si corrió exitosamente
+  // y dice 'benigna' o nivel 'bajo'/'medio', el badge no debe superar ese nivel.
+  if (agente1?.veredicto_global === 'benigna' || agente1?.nivel_riesgo_inicial === 'bajo') {
+    if (riskLevel === 'CRITICAL' || riskLevel === 'HIGH') riskLevel = 'LOW';
+  } else if (agente1?.nivel_riesgo_inicial === 'medio') {
+    if (riskLevel === 'CRITICAL') riskLevel = 'MEDIUM';
+  }
+
   const navegacionDominios = Array.isArray(raw.navegacionDominios)
     ? (raw.navegacionDominios as any[])
     : [];
@@ -613,7 +621,7 @@ async function submitToBackend(extensionId: string, extensionName: string): Prom
     const res = await fetchWithTimeout(`${BACKEND_URL}/analyze`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ extensionId, navigator: 'stagehand' }),
+      body: JSON.stringify({ extensionId, navigator: 'intelligent_navigator' }),
     });
     if (!res.ok) return false;
     const data = await res.json() as { jobId: string; status: string };

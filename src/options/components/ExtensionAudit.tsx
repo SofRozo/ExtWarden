@@ -13,6 +13,7 @@ import type {
   DomainNavigationLog,
   AgentStep,
   AgentFinding,
+  HallazgoCodigo,
   UserRiskSummaryItem,
   UserRiskStatus,
   UserFacingVerdict,
@@ -274,7 +275,7 @@ function Agent1Summary({ agente1 }: { agente1: NonNullable<SandboxReport['agente
     <section className="space-y-3">
       <div>
         <p className="text-[10px] font-bold tracking-wider uppercase text-gray-500 mb-1">
-          3 · Opinión del Agente IA
+          4 · Opinión del Agente IA
         </p>
         <p className="text-[11px] text-gray-500 leading-snug">
           El agente leyó el código, cruzó los hallazgos con el propósito declarado
@@ -326,7 +327,7 @@ function ManifestRiskBlock({ ext }: { ext: InstalledExtension }) {
         <span
           className={`inline-flex items-center text-xs font-bold px-3 py-1 rounded-full ${badge.color}`}
         >
-          {ext.riskLevel.toUpperCase()} · {ext.riskScore}
+          {({ critical: 'Crítico', high: 'Alto', medium: 'Moderado', low: 'Bajo', safe: 'Sin riesgo' } as const)[ext.riskLevel] ?? ext.riskLevel}
         </span>
       </div>
       <div className="grid grid-cols-3 gap-2 text-center">
@@ -436,8 +437,7 @@ function UserVerdictBanner({ verdict }: { verdict: UserFacingVerdict }) {
           2 · Veredicto del análisis profundo
         </p>
         <p className="text-[11px] text-gray-500 leading-snug">
-          Cálculo del backend tras parsear el código, seguir flujos de datos
-          y evaluar 10 categorías de comportamiento.
+          El agente IA leyó el código fuente y emitió su veredicto.
         </p>
       </div>
       <div className="flex items-center gap-2 flex-wrap">
@@ -451,22 +451,117 @@ function UserVerdictBanner({ verdict }: { verdict: UserFacingVerdict }) {
           {USER_VEREDICTO_LABEL[verdict.veredicto]} · {style.label}
         </span>
       </div>
-      <p className="text-sm text-gray-800 leading-relaxed">{verdict.resumen}</p>
-      {verdict.razones.length > 0 && (
-        <div>
-          <p className="text-[10px] font-semibold tracking-wider uppercase text-gray-500 mb-1">
-            Razones
-          </p>
-          <ul className="space-y-1">
-            {verdict.razones.map((r, i) => (
-              <li key={i} className="text-[12px] text-gray-700 leading-snug">
-                • {r}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
     </section>
+  );
+}
+
+// ── Respuestas estructuradas del agente (10 preguntas) ──
+
+const RESPUESTA_LABEL: Record<string, string> = {
+  puede_leer_formularios:       '¿Puede leer formularios y contraseñas?',
+  puede_ver_paginas_visitadas:  '¿Puede ver las páginas que visitas?',
+  puede_capturar_contrasenas:   '¿Puede capturar contraseñas?',
+  puede_modificar_paginas:      '¿Puede modificar páginas web?',
+  puede_espiar_sin_saberlo:     '¿Puede espiarte sin que lo sepas?',
+  puede_ver_historial:          '¿Puede ver tu historial de navegación?',
+  puede_registrar_teclas:       '¿Puede registrar lo que escribes?',
+  puede_interceptar_trafico:    '¿Puede interceptar tu tráfico de red?',
+  codigo_oculto_o_sospechoso:   '¿Tiene código oculto o sospechoso?',
+  puede_afectar_otras_extensiones: '¿Puede afectar otras extensiones?',
+};
+
+const RESPUESTA_STYLES: Record<'si' | 'no_detectado' | 'posible', { badge: string; dot: string; label: string }> = {
+  si:           { badge: 'bg-red-100 text-red-700',     dot: 'bg-red-500',     label: 'Sí' },
+  posible:      { badge: 'bg-amber-100 text-amber-700', dot: 'bg-amber-400',   label: 'Posible' },
+  no_detectado: { badge: 'bg-gray-100 text-gray-500',   dot: 'bg-gray-300',    label: 'No detectado' },
+};
+
+function RespuestasUsuarioBlock({
+  respuestas,
+  fromAgent,
+}: {
+  respuestas: Record<string, 'si' | 'no_detectado' | 'posible'>;
+  fromAgent: boolean;
+}) {
+  const ORDER = [
+    'puede_capturar_contrasenas',
+    'puede_registrar_teclas',
+    'puede_espiar_sin_saberlo',
+    'puede_leer_formularios',
+    'puede_modificar_paginas',
+    'puede_interceptar_trafico',
+    'puede_ver_paginas_visitadas',
+    'puede_ver_historial',
+    'codigo_oculto_o_sospechoso',
+    'puede_afectar_otras_extensiones',
+  ];
+  const entries = ORDER.filter((k) => k in respuestas).map((k) => [k, respuestas[k]] as [string, 'si' | 'no_detectado' | 'posible']);
+
+  return (
+    <section className="space-y-2">
+      <div>
+        <p className="text-[10px] font-bold tracking-wider uppercase text-gray-500 mb-1">
+          3 · Preguntas frecuentes
+        </p>
+        <p className="text-[11px] text-gray-500 leading-snug">
+          {fromAgent
+            ? 'Respuestas del agente IA basadas en el código analizado.'
+            : 'Respuestas derivadas del análisis estático (el agente no estuvo disponible).'}
+        </p>
+      </div>
+      <div className="rounded-xl border border-surface-200 bg-white divide-y divide-surface-100 overflow-hidden">
+        {entries.map(([key, value]) => {
+          const style = RESPUESTA_STYLES[value] ?? RESPUESTA_STYLES.no_detectado;
+          return (
+            <div key={key} className="flex items-center justify-between gap-3 px-3 py-2">
+              <p className="text-[12px] text-gray-700 leading-snug">{RESPUESTA_LABEL[key] ?? key}</p>
+              <span className={`flex-shrink-0 inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${style.badge}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`} />
+                {style.label}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+// ── Code evidence block inside category card ──
+
+const FILE_TYPE_COLORS: Record<string, string> = {
+  'background':       'bg-purple-100 text-purple-700',
+  'service worker':   'bg-purple-100 text-purple-700',
+  'content script':   'bg-blue-100 text-blue-700',
+  'popup':            'bg-teal-100 text-teal-700',
+  'librería':         'bg-gray-100 text-gray-500',
+};
+
+function CodeEvidenceBlock({ findings }: { findings: HallazgoCodigo[] }) {
+  if (findings.length === 0) return null;
+  return (
+    <details className="mt-1">
+      <summary className="cursor-pointer text-[11px] font-medium text-brand-600 hover:text-brand-700 select-none">
+        Evidencia en el código ({findings.length})
+      </summary>
+      <div className="mt-2 space-y-1.5">
+        {findings.map((f, i) => (
+          <div key={i} className="rounded-lg border border-surface-100 bg-white px-2.5 py-2 space-y-0.5">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span
+                className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${FILE_TYPE_COLORS[f.fileType] ?? 'bg-surface-100 text-gray-500'}`}
+              >
+                {f.fileType}
+              </span>
+              <span className="text-[10px] font-mono text-gray-400 break-all">
+                {f.filePath}:{f.line}
+              </span>
+            </div>
+            <p className="text-[11px] text-gray-600 leading-snug">{f.texto}</p>
+          </div>
+        ))}
+      </div>
+    </details>
   );
 }
 
@@ -540,28 +635,35 @@ function UserRiskCategoryCard({ item }: { item: UserRiskSummaryItem }) {
   const style = STATUS_STYLES[item.estado];
   const [expanded, setExpanded] = useState(item.estado === 'critico');
   const icon = CATEGORY_ICON[item.id] ?? '•';
+  const hasMore = item.evidencias.length > 3 || (item.hallazgos_codigo?.length ?? 0) > 0;
 
   return (
     <div className={`rounded-xl border ${style.card} p-3 space-y-2`}>
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-start gap-2 min-w-0">
-          <span className="text-base leading-none mt-0.5">{icon}</span>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-gray-800 leading-snug">
-              {item.titulo}
-            </p>
-            <p className="text-[12px] text-gray-600 leading-snug mt-0.5">
-              {item.resumen}
-            </p>
-          </div>
+      {/* Título + resumen */}
+      <div className="flex items-start gap-2 min-w-0">
+        <span className="text-base leading-none mt-0.5 flex-shrink-0">{icon}</span>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-gray-800 leading-snug">
+            {item.titulo}
+          </p>
+          <p className="text-[12px] text-gray-600 leading-snug mt-0.5">
+            {item.resumen}
+          </p>
         </div>
-        <span
-          className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase flex-shrink-0 ${style.badge}`}
-        >
-          {style.label}
-        </span>
       </div>
 
+      {/* Preguntas que responde — siempre visibles */}
+      {item.preguntas_responde.length > 0 && (
+        <ul className="space-y-0.5 pl-1">
+          {item.preguntas_responde.map((q, i) => (
+            <li key={i} className="text-[11px] text-gray-400 italic leading-snug">
+              {q}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {/* Evidencias en lenguaje natural */}
       {item.evidencias.length > 0 && (
         <ul className="space-y-1 pl-1">
           {item.evidencias.slice(0, expanded ? undefined : 3).map((e, i) => (
@@ -572,7 +674,7 @@ function UserRiskCategoryCard({ item }: { item: UserRiskSummaryItem }) {
         </ul>
       )}
 
-      {(item.evidencias.length > 3 || item.preguntas_responde.length > 0) && (
+      {hasMore && (
         <button
           onClick={() => setExpanded((v) => !v)}
           className="text-[11px] text-brand-600 hover:text-brand-700 font-medium"
@@ -581,38 +683,10 @@ function UserRiskCategoryCard({ item }: { item: UserRiskSummaryItem }) {
         </button>
       )}
 
-      {expanded && item.preguntas_responde.length > 0 && (
-        <div className="mt-1 pt-2 border-t border-surface-100">
-          <p className="text-[10px] font-semibold tracking-wider uppercase text-gray-400 mb-1">
-            Preguntas que responde
-          </p>
-          <ul className="space-y-0.5">
-            {item.preguntas_responde.map((q, i) => (
-              <li
-                key={i}
-                className="text-[11px] text-gray-500 italic leading-snug"
-              >
-                {q}
-              </li>
-            ))}
-          </ul>
-        </div>
+      {/* Evidencia en código — colapsada */}
+      {expanded && item.hallazgos_codigo && item.hallazgos_codigo.length > 0 && (
+        <CodeEvidenceBlock findings={item.hallazgos_codigo} />
       )}
-
-      {expanded &&
-        item.reglas_activadas &&
-        item.reglas_activadas.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-1">
-            {item.reglas_activadas.map((r) => (
-              <span
-                key={r}
-                className="text-[9px] font-mono px-1 py-0.5 rounded bg-surface-100 text-gray-500"
-              >
-                {r}
-              </span>
-            ))}
-          </div>
-        )}
     </div>
   );
 }
@@ -687,6 +761,9 @@ function ExtensionDrawer({
   const isAnalyzing = !!job && job.status !== 'completed' && job.status !== 'failed';
   const isCompleted = job?.status === 'completed' && !!report;
   const isFailed = job?.status === 'failed';
+  const versionChanged =
+    !!report?.extensionVersion &&
+    report.extensionVersion !== ext.version;
 
   return (
     <>
@@ -728,6 +805,26 @@ function ExtensionDrawer({
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {isAnalyzing && <SkeletonAnalysis />}
 
+          {isCompleted && report && versionChanged && (
+            <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+              <svg className="flex-shrink-0 mt-0.5 text-amber-500" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <div className="min-w-0">
+                <p className="text-[12px] font-semibold text-amber-800 leading-snug">
+                  Esta extensión se actualizó de v{report.extensionVersion} a v{ext.version}
+                </p>
+                <p className="text-[11px] text-amber-700 mt-0.5 leading-snug">
+                  El análisis anterior puede no reflejar el comportamiento actual. Reanaliza para obtener un veredicto actualizado.
+                </p>
+                <button
+                  onClick={onReanalyze}
+                  className="mt-2 text-[11px] font-semibold text-amber-800 underline underline-offset-2 hover:text-amber-900"
+                >
+                  Reanalizar ahora →
+                </button>
+              </div>
+            </div>
+          )}
+
           {isCompleted && report && (
             <>
               {/* Risk badge — derived backend score */}
@@ -749,18 +846,34 @@ function ExtensionDrawer({
               {/* Manifest-only quick risk (frontend computation) */}
               <ManifestRiskBlock ext={ext} />
 
-              {/* Deep static-analysis verdict (backend) */}
+              {/* Bloque 1 — Veredicto del agente (fuente principal) */}
               {report.veredicto_usuario && (
                 <UserVerdictBanner verdict={report.veredicto_usuario} />
               )}
 
-              {/* 10 user-risk categories grid (backend) */}
-              {report.resumen_usuario && report.resumen_usuario.length > 0 && (
-                <UserRiskCategoriesGrid items={report.resumen_usuario} />
-              )}
+              {/* Bloque 2 — Respuestas estructuradas (agente o fallback determinístico) */}
+              {(() => {
+                const respuestas = report.respuestas_usuario ?? report.agente1?.respuestas_usuario;
+                const fromAgent = !!report.agente1?.respuestas_usuario;
+                return respuestas && Object.keys(respuestas).length > 0 ? (
+                  <RespuestasUsuarioBlock respuestas={respuestas} fromAgent={fromAgent} />
+                ) : null;
+              })()}
 
-              {/* Agent 1 summary */}
+              {/* Agent 1 narrative */}
               {report.agente1 && <Agent1Summary agente1={report.agente1} />}
+
+              {/* Bloque 3 — Desglose técnico por categoría (colapsado) */}
+              {report.resumen_usuario && report.resumen_usuario.length > 0 && (
+                <details className="rounded-xl border border-surface-200 bg-white">
+                  <summary className="cursor-pointer px-4 py-3 text-[12px] font-semibold text-gray-500 hover:text-gray-700 select-none">
+                    Ver detalles técnicos por categoría ({report.resumen_usuario.filter(i => i.estado !== 'no_detectado').length} señales)
+                  </summary>
+                  <div className="px-4 pb-4 pt-1">
+                    <UserRiskCategoriesGrid items={report.resumen_usuario} />
+                  </div>
+                </details>
+              )}
 
               {/* Priority contacted domains */}
               <section>
@@ -785,60 +898,43 @@ function ExtensionDrawer({
                 )}
               </section>
 
-              {/* Static narrative findings — detalle técnico por archivo/línea */}
-              <section>
-                <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">
-                  Hallazgos técnicos por archivo
-                </h4>
-                {report.hallazgos_estaticos_positivos.length === 0 ? (
-                  <p className="text-sm text-gray-400 italic">
-                    No se encontraron comportamientos estáticos sospechosos
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {report.hallazgos_estaticos_positivos.map((text, i) => (
-                      <NarrativeFinding key={i} text={text} kind="static" />
-                    ))}
-                  </div>
-                )}
-              </section>
+              {/* Detalles técnicos — dinámicos y del agente, colapsados */}
+              {(report.hallazgos_dinamicos_positivos.length > 0 ||
+                (report.agente1?.hallazgos_propios?.length ?? 0) > 0) && (
+                <details className="rounded-xl border border-surface-200 bg-white">
+                  <summary className="cursor-pointer px-4 py-3 text-[12px] font-semibold text-gray-500 hover:text-gray-700 select-none">
+                    Ver hallazgos técnicos adicionales
+                  </summary>
+                  <div className="px-4 pb-4 pt-1 space-y-4">
+                    {report.hallazgos_dinamicos_positivos.length > 0 && (
+                      <section>
+                        <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">
+                          Resultados de análisis dinámico
+                        </h4>
+                        <div className="space-y-2">
+                          {report.hallazgos_dinamicos_positivos.map((text, i) => (
+                            <NarrativeFinding key={i} text={text} kind="dynamic" />
+                          ))}
+                        </div>
+                      </section>
+                    )}
 
-              {/* Dynamic narrative findings */}
-              <section>
-                <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">
-                  Resultados de análisis dinámico
-                </h4>
-                {report.hallazgos_dinamicos_positivos.length === 0 ? (
-                  <p className="text-sm text-gray-400 italic">
-                    No se observó comportamiento sospechoso durante la navegación
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {report.hallazgos_dinamicos_positivos.map((text, i) => (
-                      <NarrativeFinding key={i} text={text} kind="dynamic" />
-                    ))}
+                    {report.agente1?.hallazgos_propios &&
+                      report.agente1.hallazgos_propios.length > 0 && (
+                        <section>
+                          <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">
+                            Hallazgos adicionales del agente
+                          </h4>
+                          <div className="space-y-2">
+                            {report.agente1.hallazgos_propios.map((f, i) => (
+                              <AgentFindingCard key={i} finding={f} />
+                            ))}
+                          </div>
+                        </section>
+                      )}
                   </div>
-                )}
-              </section>
-
-              {/* Agent's own findings — items the LLM caught reading the code,
-                  in addition to the deterministic rule output */}
-              {report.agente1?.hallazgos_propios &&
-                report.agente1.hallazgos_propios.length > 0 && (
-                  <section>
-                    <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">
-                      Hallazgos adicionales del agente
-                    </h4>
-                    <p className="text-[11px] text-gray-400 mb-2 italic">
-                      Items que el agente detectó al revisar el código fuente, además del análisis estático determinista.
-                    </p>
-                    <div className="space-y-2">
-                      {report.agente1.hallazgos_propios.map((f, i) => (
-                        <AgentFindingCard key={i} finding={f} />
-                      ))}
-                    </div>
-                  </section>
-                )}
+                </details>
+              )}
 
               {/* Agent timeline — what the navigator did per priority domain */}
               {report.navegacionDominios && report.navegacionDominios.length > 0 && (

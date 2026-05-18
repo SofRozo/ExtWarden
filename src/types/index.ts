@@ -183,6 +183,8 @@ export interface Agent1Output {
   /** Findings the agent discovered by reading the source code directly.
    *  Complementary to the deterministic per-finding narratives. */
   hallazgos_propios?: AgentFinding[];
+  /** Structured answers to 10 user-facing questions produced by Agent 1. */
+  respuestas_usuario?: Record<string, 'si' | 'no_detectado' | 'posible'>;
 }
 
 export interface AgentFinding {
@@ -220,15 +222,22 @@ export type UserRiskStatus =
   | 'sospechoso'
   | 'critico';
 
+export interface HallazgoCodigo {
+  filePath: string;
+  line: number;
+  fileType: string;
+  texto: string;
+}
+
 export interface UserRiskSummaryItem {
   id: UserRiskSummaryId;
   titulo: string;
   estado: UserRiskStatus;
   resumen: string;
   evidencias: string[];
-  /** IDs de reglas internas que explican por qué se marcó la categoría. */
   reglas_activadas?: string[];
   preguntas_responde: string[];
+  hallazgos_codigo?: HallazgoCodigo[];
 }
 
 export interface UserFacingVerdict {
@@ -268,6 +277,8 @@ export interface SandboxReport {
   };
   /** Step-by-step agent decisions per priority domain — used to inspect what the LLM did. */
   navegacionDominios: DomainNavigationLog[];
+  /** Answers to the 10 user-facing questions. From Agent 1 when available, deterministic fallback otherwise. */
+  respuestas_usuario?: Record<string, 'si' | 'no_detectado' | 'posible'> | null;
   puntuacion_riesgo?: {
     score: number;
     level: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';

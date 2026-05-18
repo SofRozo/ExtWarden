@@ -49,8 +49,9 @@ export const PERMISSION_WEIGHTS: Record<string, PermissionInfo> = {
   browsingData:          { level: 'high', weight: 5, hostSensitive: false },
   contentSettings:       { level: 'high', weight: 5, hostSensitive: false },
   webNavigation:         { level: 'high', weight: 5, hostSensitive: false },
-  webAuthenticationProxy:{ level: 'high', weight: 5, hostSensitive: false },
-  certificateProvider:   { level: 'high', weight: 5, hostSensitive: false },
+  webAuthenticationProxy: { level: 'high', weight: 5, hostSensitive: false },
+  webRequestAuthProvider: { level: 'high', weight: 5, hostSensitive: false },
+  certificateProvider:    { level: 'high', weight: 5, hostSensitive: false },
   platformKeys:          { level: 'high', weight: 5, hostSensitive: false },
 
   // ── MEDIO / E ────────────────────────────────────────────────────────────
@@ -63,7 +64,7 @@ export const PERMISSION_WEIGHTS: Record<string, PermissionInfo> = {
   geolocation:  { level: 'medium', weight: 2, hostSensitive: false },
   identity:         { level: 'medium', weight: 2, hostSensitive: false },
   'identity.email': { level: 'medium', weight: 2, hostSensitive: false },
-  management:   { level: 'medium', weight: 2, hostSensitive: false },
+  management:   { level: 'high',   weight: 5, hostSensitive: false },
   sessions:     { level: 'medium', weight: 2, hostSensitive: false },
   topSites:     { level: 'medium', weight: 2, hostSensitive: false },
   contextMenus: { level: 'medium', weight: 2, hostSensitive: false },
