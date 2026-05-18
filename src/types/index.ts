@@ -43,7 +43,6 @@ export type BackendJobStatus =
   | 'preprocessing'
   | 'ai_analysis'
   | 'static_analysis'
-  | 'dynamic_analysis'
   | 'threat_intel'
   | 'generating_report'
   | 'completed'
@@ -129,62 +128,19 @@ export interface VerdictedDomainFinding {
   threatIntelSummary?: string;
 }
 
-export interface DynamicVerdictedFinding {
-  fileType: FileType;
-  filePath: string;
-  discoveryType: DomainDiscoveryType;
-  domain: string;
-  category: DomainCategory;
-  priority?: number;
-  line: number;
-  veredicto: 'maliciosa' | 'sospechosa' | 'benigna' | 'inaccesible';
-  accion_hecha: string;
-  razon: string;
-}
-
-/** Per-step agent decision exposed by the backend for live inspection. */
-export interface AgentStep {
-  step: number;
-  observation: string;
-  action: string;
-  target?: string;
-  reasoning: string;
-  result: string;
-  timestamp: number;
-}
-
-export interface DomainNavigationLog {
-  domain: string;
-  url: string;
-  navigatorUsed: 'stagehand' | 'intelligent_navigator';
-  honeypotSessionUsed: boolean;
-  agentSteps: AgentStep[];
-  actionsPerformed: string[];
-  error?: string;
-}
 
 export interface Agent1Output {
   proposito: string;
   categoria: string;
-  acciones_esperadas: string[];
-  acciones_NO_esperadas: string[];
-  senales_alarma_manifest: string[];
   nivel_riesgo_inicial: 'bajo' | 'medio' | 'alto' | 'critico';
-  razon_nivel_riesgo: string;
-  /** Holistic verdict produced by Agent 1 after seeing all evidence. */
-  veredicto_global?: 'maliciosa' | 'sospechosa' | 'benigna';
-  /** 2-4 sentence executive summary written for the end user. */
-  explicacion?: string;
-  /** Whether the extension violates the Principle of Least Privilege (PoLP). */
+  veredicto_global: 'maliciosa' | 'sospechosa' | 'benigna';
+  explicacion: string;
   violacion_minimo_privilegio?: {
     detectada: boolean;
     razones: string[];
   };
-  /** Findings the agent discovered by reading the source code directly.
-   *  Complementary to the deterministic per-finding narratives. */
   hallazgos_propios?: AgentFinding[];
-  /** Structured answers to 10 user-facing questions produced by Agent 1. */
-  respuestas_usuario?: Record<string, 'si' | 'no_detectado' | 'posible'>;
+  respuestas_usuario?: Record<string, { valor: 'si' | 'no_detectado' | 'posible'; razon: string }>;
 }
 
 export interface AgentFinding {
@@ -252,6 +208,12 @@ export interface UserFacingVerdict {
  * field computed by the frontend (service-worker.ts:normalizeReport) so
  * existing UI elements (bento stats, table badges) keep working.
  */
+export interface PermisNoUsado {
+  permission: string;
+  categoria: 'critical' | 'high' | 'medium' | 'low';
+  descripcion: string;
+}
+
 export interface SandboxReport {
   jobId: string;
   extensionId?: string;
@@ -262,23 +224,15 @@ export interface SandboxReport {
   analysisTimestamp?: string;
   analysisDuration?: number;
   agente1: Agent1Output | null;
-  dominios_contactados_prioritarios: string[];
-  /** Resumen orientado a usuario final: una tarjeta por cada una de las 10 categorías. */
   resumen_usuario: UserRiskSummaryItem[];
-  /** Veredicto final legible derivado del resumen de usuario. */
   veredicto_usuario: UserFacingVerdict | null;
   hallazgos_estaticos_positivos: string[];
-  hallazgos_dinamicos_positivos: string[];
+  permisos_no_usados: PermisNoUsado[];
   estructura: {
     resultado1: VerdictedStaticFinding[];
     resultado2_priority: VerdictedDomainFinding[];
     resultado2_unknown: VerdictedDomainFinding[];
-    resultado_dinamico: DynamicVerdictedFinding[];
   };
-  /** Step-by-step agent decisions per priority domain — used to inspect what the LLM did. */
-  navegacionDominios: DomainNavigationLog[];
-  /** Answers to the 10 user-facing questions. From Agent 1 when available, deterministic fallback otherwise. */
-  respuestas_usuario?: Record<string, 'si' | 'no_detectado' | 'posible'> | null;
   puntuacion_riesgo?: {
     score: number;
     level: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';

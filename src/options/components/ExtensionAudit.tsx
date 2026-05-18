@@ -10,13 +10,13 @@ import type {
   SandboxJob,
   SandboxReport,
   BackendRiskLevel,
-  DomainNavigationLog,
-  AgentStep,
   AgentFinding,
   HallazgoCodigo,
+  PermisNoUsado,
   UserRiskSummaryItem,
   UserRiskStatus,
   UserFacingVerdict,
+  VerdictedDomainFinding,
 } from '../../types';
 
 const ITEMS_PER_PAGE = 4;
@@ -153,118 +153,31 @@ function AgentFindingCard({ finding }: { finding: AgentFinding }) {
 }
 
 // ── Narrative finding card ──
-// Renders one of the new narrative strings emitted by the backend report
-// (hallazgos_estaticos_positivos / hallazgos_dinamicos_positivos).
-function NarrativeFinding({ text, kind }: { text: string; kind: 'static' | 'dynamic' }) {
+
+function NarrativeFinding({ text }: { text: string }) {
   return (
     <div className="border border-surface-100 rounded-xl p-3 flex gap-2.5 items-start">
-      <span
-        className={`mt-0.5 flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center ${
-          kind === 'dynamic' ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600'
-        }`}
-      >
-        {kind === 'dynamic' ? (
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
-        ) : (
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        )}
+      <span className="mt-0.5 flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center bg-amber-100 text-amber-600">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
       </span>
       <p className="text-sm text-gray-700 leading-snug">{text}</p>
     </div>
   );
 }
 
-// ── Agent timeline (per priority domain) ──
+// ── Agent 1 proposito block (brief, shown early) ──
 
-const NAVIGATOR_LABEL: Record<DomainNavigationLog['navigatorUsed'], string> = {
-  stagehand: 'Stagehand',
-  intelligent_navigator: 'IntelligentNavigator',
-};
-
-const NAVIGATOR_COLOR: Record<DomainNavigationLog['navigatorUsed'], string> = {
-  stagehand: 'bg-purple-100 text-purple-700',
-  intelligent_navigator: 'bg-emerald-100 text-emerald-700',
-};
-
-const RESULT_COLOR: Record<string, string> = {
-  success: 'text-emerald-700',
-  failed: 'text-red-700',
-  'no-op': 'text-gray-400',
-};
-
-function AgentStepRow({ step }: { step: AgentStep }) {
+function PropositoBlock({ proposito }: { proposito: string }) {
   return (
-    <div className="border-l-2 border-surface-200 pl-3 pb-2 relative">
-      <span className="absolute -left-[5px] top-0 w-2 h-2 rounded-full bg-brand-400"></span>
-      <div className="flex items-baseline gap-2 flex-wrap">
-        <span className="text-[10px] font-bold uppercase text-gray-500">
-          paso {step.step}
-        </span>
-        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-surface-100 text-gray-600">
-          {step.action}
-        </span>
-        <span
-          className={`text-[10px] font-semibold ${RESULT_COLOR[step.result] ?? 'text-gray-500'}`}
-        >
-          {step.result}
-        </span>
+    <section className="rounded-xl border border-surface-200 bg-surface-50/50 p-3 flex gap-2.5 items-start">
+      <span className="mt-0.5 flex-shrink-0 w-6 h-6 rounded-md flex items-center justify-center bg-brand-100 text-brand-600">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </span>
+      <div>
+        <p className="text-[10px] font-bold tracking-wider uppercase text-gray-400 mb-0.5">Propósito detectado</p>
+        <p className="text-[12px] text-gray-700 leading-snug">{proposito}</p>
       </div>
-      {step.target && (
-        <p className="text-[11px] text-gray-500 font-mono mt-0.5 break-all">
-          target: {step.target}
-        </p>
-      )}
-      <p className="text-[12px] text-gray-700 mt-1">{step.observation}</p>
-      <p className="text-[11px] text-gray-400 mt-0.5 italic">razón: {step.reasoning}</p>
-    </div>
-  );
-}
-
-function DomainNavigationCard({ nav }: { nav: DomainNavigationLog }) {
-  const [expanded, setExpanded] = useState(false);
-  return (
-    <div className="border border-surface-100 rounded-xl p-3 bg-white">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="text-sm font-semibold text-gray-700 truncate">
-            {nav.domain}
-          </span>
-          <span
-            className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${NAVIGATOR_COLOR[nav.navigatorUsed]}`}
-          >
-            {NAVIGATOR_LABEL[nav.navigatorUsed]}
-          </span>
-          {nav.honeypotSessionUsed && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 font-medium">
-              honeypot ON
-            </span>
-          )}
-        </div>
-        <span className="text-[10px] text-gray-400">
-          {nav.agentSteps.length} paso(s) · {nav.actionsPerformed.length} acción(es)
-        </span>
-      </div>
-      {nav.error && (
-        <p className="text-[11px] text-red-600 mt-1 italic">error: {nav.error}</p>
-      )}
-      {nav.agentSteps.length > 0 && (
-        <>
-          <button
-            onClick={() => setExpanded((v) => !v)}
-            className="text-[11px] text-brand-600 hover:text-brand-700 font-medium mt-2"
-          >
-            {expanded ? 'Ocultar pasos' : 'Ver pasos del agente →'}
-          </button>
-          {expanded && (
-            <div className="mt-3 space-y-2">
-              {nav.agentSteps.map((s, i) => (
-                <AgentStepRow key={i} step={s} />
-              ))}
-            </div>
-          )}
-        </>
-      )}
-    </div>
+    </section>
   );
 }
 
@@ -387,7 +300,7 @@ function ManifestRiskBlock({ ext }: { ext: InstalledExtension }) {
 // ── User-facing verdict banner (backend deep analysis) ──
 // Este bloque viene del UserRiskSummaryService del backend. Da el veredicto
 // final basado en lo que el código realmente hace (análisis estático + AST +
-// taint flow + dynamic Stagehand).
+// taint flow).
 
 const USER_VERDICT_STYLES: Record<
   UserFacingVerdict['nivel'],
@@ -455,6 +368,138 @@ function UserVerdictBanner({ verdict }: { verdict: UserFacingVerdict }) {
   );
 }
 
+// ── Unused permissions block ──
+
+const PERM_CATEGORIA_STYLE: Record<PermisNoUsado['categoria'], { badge: string; dot: string; label: string }> = {
+  critical: { badge: 'bg-red-100 text-red-700',     dot: 'bg-red-500',    label: 'Crítico' },
+  high:     { badge: 'bg-orange-100 text-orange-700', dot: 'bg-orange-400', label: 'Alto' },
+  medium:   { badge: 'bg-amber-100 text-amber-700',  dot: 'bg-amber-400',  label: 'Medio' },
+  low:      { badge: 'bg-gray-100 text-gray-500',    dot: 'bg-gray-300',   label: 'Bajo' },
+};
+
+function PermisosNoUsadosBlock({ permisos }: { permisos: PermisNoUsado[] }) {
+  const visible = [...permisos].sort((a, b) => {
+    const order = { critical: 0, high: 1, medium: 2, low: 3 };
+    return order[a.categoria] - order[b.categoria];
+  });
+
+  return (
+    <div className="space-y-2">
+      <p className="text-[11px] text-gray-500 leading-snug">
+        Estos permisos están en el manifest pero el análisis no los detectó en el código.
+        Una actualización futura podría activarlos sin que Chrome te avise, porque el permiso
+        ya fue aprobado.
+      </p>
+      <div className="rounded-xl border border-amber-100 bg-amber-50/40 divide-y divide-amber-100 overflow-hidden">
+        {visible.map((p) => {
+          const style = PERM_CATEGORIA_STYLE[p.categoria];
+          return (
+            <div key={p.permission} className="px-3 py-2.5 space-y-0.5">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[12px] font-mono font-semibold text-gray-700">{p.permission}</p>
+                <span className={`flex-shrink-0 inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${style.badge}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`} />
+                  {style.label}
+                </span>
+              </div>
+              <p className="text-[11px] text-gray-500 leading-snug">{p.descripcion}</p>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Detected domains block ──
+
+const DOMAIN_CATEGORY_META: Record<string, { label: string; color: string; icon: string }> = {
+  sensible_financiero:           { label: 'Financiero',          color: 'bg-red-100 text-red-700',       icon: '💳' },
+  sensible_identidad:            { label: 'Identidad / Auth',    color: 'bg-red-100 text-red-700',       icon: '🔑' },
+  sensible_data_broker:          { label: 'Data broker / Ads',   color: 'bg-orange-100 text-orange-700', icon: '📊' },
+  sensible_llm:                  { label: 'IA / LLM',            color: 'bg-purple-100 text-purple-700', icon: '🤖' },
+  sensible_correo_productividad: { label: 'Correo / Productividad', color: 'bg-amber-100 text-amber-700', icon: '✉️' },
+  sensible_redes_sociales:       { label: 'Redes sociales',      color: 'bg-blue-100 text-blue-700',     icon: '👥' },
+  sensible_gubernamental:        { label: 'Gubernamental',        color: 'bg-teal-100 text-teal-700',    icon: '🏛️' },
+  desconocido:                   { label: 'Desconocido',          color: 'bg-gray-100 text-gray-600',    icon: '❓' },
+};
+
+const DISCOVERY_LABEL: Record<string, string> = {
+  url_en_codigo:            'contactado por red',
+  host_permission_manifest: 'permiso de host declarado',
+  navegacion_externa_sensible: 'enlace inyectado en página',
+};
+
+function DomainsBlock({
+  priority,
+  unknown,
+}: {
+  priority: VerdictedDomainFinding[];
+  unknown: VerdictedDomainFinding[];
+}) {
+  const all = [...priority, ...unknown];
+  if (all.length === 0) return null;
+
+  // Group by category
+  const grouped = new Map<string, VerdictedDomainFinding[]>();
+  for (const f of all) {
+    const key = f.category ?? 'desconocido';
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key)!.push(f);
+  }
+
+  // Sort categories by severity (same order as DOMAIN_CATEGORY_META keys)
+  const categoryOrder = Object.keys(DOMAIN_CATEGORY_META);
+  const sortedEntries = [...grouped.entries()].sort(
+    (a, b) => categoryOrder.indexOf(a[0]) - categoryOrder.indexOf(b[0]),
+  );
+
+  return (
+    <section className="space-y-2">
+      <div>
+        <p className="text-[10px] font-bold tracking-wider uppercase text-gray-500 mb-1">
+          Dominios detectados
+        </p>
+        <p className="text-[11px] text-gray-500 leading-snug">
+          Dominios sensibles encontrados en el código o declarados como permisos de host.
+          Los de categoría <span className="font-semibold text-gray-600">desconocida</span> son terceros
+          que el análisis estático no pudo clasificar automáticamente.
+        </p>
+      </div>
+      <div className="space-y-2">
+        {sortedEntries.map(([cat, findings]) => {
+          const meta = DOMAIN_CATEGORY_META[cat] ?? DOMAIN_CATEGORY_META.desconocido;
+          return (
+            <details key={cat} className="rounded-xl border border-surface-200 bg-white overflow-hidden" open={cat !== 'desconocido'}>
+              <summary className="cursor-pointer px-3 py-2 flex items-center gap-2 select-none hover:bg-surface-50">
+                <span className="text-base leading-none">{meta.icon}</span>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${meta.color}`}>{meta.label}</span>
+                <span className="text-[11px] text-gray-400 ml-auto">{findings.length} dominio(s)</span>
+              </summary>
+              <div className="divide-y divide-surface-100">
+                {findings.map((f, i) => (
+                  <div key={i} className="px-3 py-2 space-y-0.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[12px] font-mono font-semibold text-gray-700 break-all">{f.domain}</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-surface-100 text-gray-500 flex-shrink-0">
+                        {DISCOVERY_LABEL[f.discoveryType] ?? f.discoveryType}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-gray-400 leading-snug">
+                      {f.filePath === 'manifest.json' ? 'manifest.json' : `${f.filePath}`}
+                      {f.line ? ` · línea ${f.line}` : ''}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </details>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 // ── Respuestas estructuradas del agente (10 preguntas) ──
 
 const RESPUESTA_LABEL: Record<string, string> = {
@@ -480,7 +525,7 @@ function RespuestasUsuarioBlock({
   respuestas,
   fromAgent,
 }: {
-  respuestas: Record<string, 'si' | 'no_detectado' | 'posible'>;
+  respuestas: Record<string, { valor: 'si' | 'no_detectado' | 'posible'; razon: string }>;
   fromAgent: boolean;
 }) {
   const ORDER = [
@@ -495,7 +540,7 @@ function RespuestasUsuarioBlock({
     'codigo_oculto_o_sospechoso',
     'puede_afectar_otras_extensiones',
   ];
-  const entries = ORDER.filter((k) => k in respuestas).map((k) => [k, respuestas[k]] as [string, 'si' | 'no_detectado' | 'posible']);
+  const entries = ORDER.filter((k) => k in respuestas).map((k) => ({ key: k, ...respuestas[k] }));
 
   return (
     <section className="space-y-2">
@@ -510,15 +555,20 @@ function RespuestasUsuarioBlock({
         </p>
       </div>
       <div className="rounded-xl border border-surface-200 bg-white divide-y divide-surface-100 overflow-hidden">
-        {entries.map(([key, value]) => {
-          const style = RESPUESTA_STYLES[value] ?? RESPUESTA_STYLES.no_detectado;
+        {entries.map(({ key, valor, razon }) => {
+          const style = RESPUESTA_STYLES[valor] ?? RESPUESTA_STYLES.no_detectado;
           return (
-            <div key={key} className="flex items-center justify-between gap-3 px-3 py-2">
-              <p className="text-[12px] text-gray-700 leading-snug">{RESPUESTA_LABEL[key] ?? key}</p>
-              <span className={`flex-shrink-0 inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${style.badge}`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`} />
-                {style.label}
-              </span>
+            <div key={key} className="px-3 py-2 space-y-0.5">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[12px] text-gray-700 leading-snug">{RESPUESTA_LABEL[key] ?? key}</p>
+                <span className={`flex-shrink-0 inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${style.badge}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`} />
+                  {style.label}
+                </span>
+              </div>
+              {razon && (
+                <p className="text-[11px] text-gray-400 leading-snug italic">{razon}</p>
+              )}
             </div>
           );
         })}
@@ -843,24 +893,46 @@ function ExtensionDrawer({
                 </span>
               </div>
 
-              {/* Manifest-only quick risk (frontend computation) */}
+              {/* 1 · Riesgo rápido — cálculo del frontend desde el manifest */}
               <ManifestRiskBlock ext={ext} />
 
-              {/* Bloque 1 — Veredicto del agente (fuente principal) */}
+              {/* 2 · Veredicto del análisis profundo */}
               {report.veredicto_usuario && (
                 <UserVerdictBanner verdict={report.veredicto_usuario} />
               )}
 
-              {/* Bloque 2 — Respuestas estructuradas (agente o fallback determinístico) */}
-              {(() => {
-                const respuestas = report.respuestas_usuario ?? report.agente1?.respuestas_usuario;
-                const fromAgent = !!report.agente1?.respuestas_usuario;
-                return respuestas && Object.keys(respuestas).length > 0 ? (
-                  <RespuestasUsuarioBlock respuestas={respuestas} fromAgent={fromAgent} />
-                ) : null;
-              })()}
+              {/* Propósito detectado — una oración del agente, da contexto inmediato */}
+              {report.agente1?.proposito && (
+                <PropositoBlock proposito={report.agente1.proposito} />
+              )}
 
-              {/* Agent 1 narrative */}
+              {/* Dominios detectados — qué servidores contacta la extensión */}
+              {(report.estructura.resultado2_priority.length > 0 || report.estructura.resultado2_unknown.length > 0) && (
+                <DomainsBlock
+                  priority={report.estructura.resultado2_priority}
+                  unknown={report.estructura.resultado2_unknown}
+                />
+              )}
+
+              {/* Permisos declarados pero no usados — superficie de ataque latente */}
+              {report.permisos_no_usados.length > 0 && (
+                <details className="rounded-xl border border-amber-200 bg-white overflow-hidden">
+                  <summary className="cursor-pointer px-4 py-3 text-[12px] font-semibold text-amber-700 hover:text-amber-800 select-none flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
+                    Permisos declarados pero no usados ({report.permisos_no_usados.length})
+                  </summary>
+                  <div className="px-4 pb-4 pt-1">
+                    <PermisosNoUsadosBlock permisos={report.permisos_no_usados} />
+                  </div>
+                </details>
+              )}
+
+              {/* 3 · Preguntas frecuentes — respuestas del agente IA */}
+              {report.agente1?.respuestas_usuario && Object.keys(report.agente1.respuestas_usuario).length > 0 && (
+                <RespuestasUsuarioBlock respuestas={report.agente1.respuestas_usuario} fromAgent={true} />
+              )}
+
+              {/* 4 · Opinión del Agente IA — evaluación narrativa completa */}
               {report.agente1 && <Agent1Summary agente1={report.agente1} />}
 
               {/* Bloque 3 — Desglose técnico por categoría (colapsado) */}
@@ -875,79 +947,18 @@ function ExtensionDrawer({
                 </details>
               )}
 
-              {/* Priority contacted domains */}
-              <section>
-                <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">
-                  Dominios contactados (prioritarios)
-                </h4>
-                {report.dominios_contactados_prioritarios.length === 0 ? (
-                  <p className="text-sm text-gray-400 italic">
-                    No se detectó contacto con dominios sensibles
-                  </p>
-                ) : (
-                  <div className="space-y-1.5">
-                    {report.dominios_contactados_prioritarios.map((url, i) => (
-                      <div key={i} className="flex items-center gap-2 text-sm text-gray-600">
-                        <span className="text-gray-400 flex-shrink-0">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
-                        </span>
-                        <span className="truncate font-mono text-xs">{url}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </section>
-
-              {/* Detalles técnicos — dinámicos y del agente, colapsados */}
-              {(report.hallazgos_dinamicos_positivos.length > 0 ||
-                (report.agente1?.hallazgos_propios?.length ?? 0) > 0) && (
+              {/* Hallazgos adicionales del agente */}
+              {report.agente1?.hallazgos_propios && report.agente1.hallazgos_propios.length > 0 && (
                 <details className="rounded-xl border border-surface-200 bg-white">
                   <summary className="cursor-pointer px-4 py-3 text-[12px] font-semibold text-gray-500 hover:text-gray-700 select-none">
-                    Ver hallazgos técnicos adicionales
+                    Ver hallazgos adicionales del agente ({report.agente1.hallazgos_propios.length})
                   </summary>
-                  <div className="px-4 pb-4 pt-1 space-y-4">
-                    {report.hallazgos_dinamicos_positivos.length > 0 && (
-                      <section>
-                        <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">
-                          Resultados de análisis dinámico
-                        </h4>
-                        <div className="space-y-2">
-                          {report.hallazgos_dinamicos_positivos.map((text, i) => (
-                            <NarrativeFinding key={i} text={text} kind="dynamic" />
-                          ))}
-                        </div>
-                      </section>
-                    )}
-
-                    {report.agente1?.hallazgos_propios &&
-                      report.agente1.hallazgos_propios.length > 0 && (
-                        <section>
-                          <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">
-                            Hallazgos adicionales del agente
-                          </h4>
-                          <div className="space-y-2">
-                            {report.agente1.hallazgos_propios.map((f, i) => (
-                              <AgentFindingCard key={i} finding={f} />
-                            ))}
-                          </div>
-                        </section>
-                      )}
-                  </div>
-                </details>
-              )}
-
-              {/* Agent timeline — what the navigator did per priority domain */}
-              {report.navegacionDominios && report.navegacionDominios.length > 0 && (
-                <section>
-                  <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">
-                    Pasos del agente por dominio
-                  </h4>
-                  <div className="space-y-3">
-                    {report.navegacionDominios.map((nav, i) => (
-                      <DomainNavigationCard key={i} nav={nav} />
+                  <div className="px-4 pb-4 pt-1 space-y-2">
+                    {report.agente1.hallazgos_propios.map((f, i) => (
+                      <AgentFindingCard key={i} finding={f} />
                     ))}
                   </div>
-                </section>
+                </details>
               )}
             </>
           )}
@@ -1438,7 +1449,7 @@ function ExtRow({
 
   // Total positive findings shown in the row when analysis is complete.
   const totalFindings = isCompleted && report
-    ? report.hallazgos_estaticos_positivos.length + report.hallazgos_dinamicos_positivos.length
+    ? report.hallazgos_estaticos_positivos.length
     : 0;
 
   return (

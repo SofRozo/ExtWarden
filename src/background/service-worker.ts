@@ -396,7 +396,6 @@ interface SandboxJobSW {
     | 'preprocessing'
     | 'ai_analysis'
     | 'static_analysis'
-    | 'dynamic_analysis'
     | 'threat_intel'
     | 'generating_report'
     | 'completed'
@@ -409,15 +408,12 @@ interface SandboxJobSW {
 type Agent1OutputSW = {
   proposito: string;
   categoria: string;
-  acciones_esperadas: string[];
-  acciones_NO_esperadas: string[];
-  senales_alarma_manifest: string[];
   nivel_riesgo_inicial: 'bajo' | 'medio' | 'alto' | 'critico';
-  razon_nivel_riesgo: string;
-  veredicto_global?: 'maliciosa' | 'sospechosa' | 'benigna';
-  explicacion?: string;
+  veredicto_global: 'maliciosa' | 'sospechosa' | 'benigna';
+  explicacion: string;
   violacion_minimo_privilegio?: { detectada: boolean; razones: string[] };
   hallazgos_propios?: unknown[];
+  respuestas_usuario?: Record<string, { valor: 'si' | 'no_detectado' | 'posible'; razon: string }>;
 };
 
 type UserRiskSummaryItemSW = {
@@ -447,18 +443,15 @@ interface SandboxReportSW {
   analysisTimestamp?: string;
   analysisDuration?: number;
   agente1: Agent1OutputSW | null;
-  dominios_contactados_prioritarios: string[];
   resumen_usuario: UserRiskSummaryItemSW[];
   veredicto_usuario: UserFacingVerdictSW | null;
   hallazgos_estaticos_positivos: string[];
-  hallazgos_dinamicos_positivos: string[];
+  permisos_no_usados: Array<{ permission: string; categoria: string; descripcion: string }>;
   estructura: {
     resultado1: any[];
     resultado2_priority: any[];
     resultado2_unknown: any[];
-    resultado_dinamico: any[];
   };
-  navegacionDominios: any[];
   puntuacion_riesgo?: {
     score: number;
     level: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
@@ -498,25 +491,9 @@ function normalizeReport(raw: Record<string, unknown>): SandboxReportSW {
     resultado2_unknown: Array.isArray(estructuraRaw.resultado2_unknown)
       ? (estructuraRaw.resultado2_unknown as any[])
       : [],
-    resultado_dinamico: Array.isArray(estructuraRaw.resultado_dinamico)
-      ? (estructuraRaw.resultado_dinamico as any[])
-      : [],
   };
 
   // ── Derive riskLevel ────────────────────────────────────────────────────
-  // CRITICAL: any dynamic finding is "maliciosa" OR ≥1 positive static finding
-  //           comes from a content_script with a high-risk discoveryType.
-  // HIGH:     any dynamic finding is "sospechosa" OR there are ≥3 positive
-  //           static findings.
-  // MEDIUM:   ≥1 positive static finding.
-  // LOW:      agent1 says nivel_riesgo_inicial=alto|critico but no findings.
-  // NONE:     nothing.
-  const dynamicHasMalicious = estructura.resultado_dinamico.some(
-    (f) => f?.veredicto === 'maliciosa',
-  );
-  const dynamicHasSuspicious = estructura.resultado_dinamico.some(
-    (f) => f?.veredicto === 'sospechosa',
-  );
   const positiveStatic = estructura.resultado1.filter(
     (f) => f?.veredicto === 'positivo',
   );
@@ -542,9 +519,9 @@ function normalizeReport(raw: Record<string, unknown>): SandboxReportSW {
   const backendRisk = raw.puntuacion_riesgo as SandboxReportSW['puntuacion_riesgo'] | undefined;
 
   let riskLevel: SandboxReportSW['riskLevel'];
-  if (backendRisk?.level === 'CRITICAL' || dynamicHasMalicious || csCriticalStatic) {
+  if (backendRisk?.level === 'CRITICAL' || csCriticalStatic) {
     riskLevel = 'CRITICAL';
-  } else if (backendRisk?.level === 'HIGH' || dynamicHasSuspicious || totalPositiveStatic >= 3) {
+  } else if (backendRisk?.level === 'HIGH' || totalPositiveStatic >= 3) {
     riskLevel = 'HIGH';
   } else if (backendRisk?.level === 'MEDIUM' || totalPositiveStatic >= 1) {
     riskLevel = 'MEDIUM';
@@ -568,13 +545,6 @@ function normalizeReport(raw: Record<string, unknown>): SandboxReportSW {
     if (riskLevel === 'CRITICAL') riskLevel = 'MEDIUM';
   }
 
-  const navegacionDominios = Array.isArray(raw.navegacionDominios)
-    ? (raw.navegacionDominios as any[])
-    : [];
-
-  // Pass through resumen_usuario / veredicto_usuario as-is — they're already
-  // a stable contract from the backend (10 categories, fixed status values).
-  // The frontend's category grid renders them directly.
   const resumenUsuario = Array.isArray(raw.resumen_usuario)
     ? (raw.resumen_usuario as UserRiskSummaryItemSW[])
     : [];
@@ -591,18 +561,12 @@ function normalizeReport(raw: Record<string, unknown>): SandboxReportSW {
     analysisTimestamp: typeof raw.analysisTimestamp === 'string' ? raw.analysisTimestamp : undefined,
     analysisDuration: typeof raw.analysisDuration === 'number' ? raw.analysisDuration : undefined,
     agente1,
-    navegacionDominios,
-    dominios_contactados_prioritarios: toStringArray(
-      raw.dominios_contactados_prioritarios,
-    ),
     resumen_usuario: resumenUsuario,
     veredicto_usuario: veredictoUsuario,
-    hallazgos_estaticos_positivos: toStringArray(
-      raw.hallazgos_estaticos_positivos,
-    ),
-    hallazgos_dinamicos_positivos: toStringArray(
-      raw.hallazgos_dinamicos_positivos,
-    ),
+    hallazgos_estaticos_positivos: toStringArray(raw.hallazgos_estaticos_positivos),
+    permisos_no_usados: Array.isArray(raw.permisos_no_usados)
+      ? (raw.permisos_no_usados as any[])
+      : [],
     estructura,
     puntuacion_riesgo: backendRisk,
     riskLevel,
@@ -621,7 +585,7 @@ async function submitToBackend(extensionId: string, extensionName: string): Prom
     const res = await fetchWithTimeout(`${BACKEND_URL}/analyze`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ extensionId, navigator: 'intelligent_navigator' }),
+      body: JSON.stringify({ extensionId }),
     });
     if (!res.ok) return false;
     const data = await res.json() as { jobId: string; status: string };
@@ -700,9 +664,7 @@ function showSandboxNotification(extId: string, extName: string, report: Sandbox
   let message: string;
   let priority: number;
 
-  const totalPositive =
-    report.hallazgos_estaticos_positivos.length +
-    report.hallazgos_dinamicos_positivos.length;
+  const totalPositive = report.hallazgos_estaticos_positivos.length;
 
   if (report.riskLevel === 'CRITICAL' || report.riskLevel === 'HIGH') {
     title = `⚠️ Riesgo detectado: ${extName}`;

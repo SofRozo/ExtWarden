@@ -3,18 +3,17 @@ import { storageGet, onStorageChange, isChromeExtension } from '../utils/chromeA
 import type { SandboxJob, SandboxReport } from '../types';
 
 /**
- * Drops reports stored under the previous backend contract (which had
- * `findings`/`privacyLabels`/`recommendation`/etc.) so the new UI never
- * tries to access fields that don't exist. The new contract requires
- * `hallazgos_estaticos_positivos`/`hallazgos_dinamicos_positivos` arrays.
+ * Drops reports stored under a previous backend contract so the UI never
+ * tries to access fields that don't exist. Requires the current contract shape.
  */
 function isCompatibleReport(r: unknown): r is SandboxReport {
   if (!r || typeof r !== 'object') return false;
   const rep = r as Record<string, unknown>;
   return (
     Array.isArray(rep.hallazgos_estaticos_positivos) &&
-    Array.isArray(rep.hallazgos_dinamicos_positivos) &&
-    Array.isArray(rep.dominios_contactados_prioritarios)
+    Array.isArray(rep.permisos_no_usados) &&
+    rep.estructura !== undefined &&
+    rep.agente1 !== undefined
   );
 }
 
