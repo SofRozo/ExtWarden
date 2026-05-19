@@ -188,7 +188,7 @@ function Agent1Summary({ agente1 }: { agente1: NonNullable<SandboxReport['agente
     <section className="space-y-3">
       <div>
         <p className="text-[10px] font-bold tracking-wider uppercase text-gray-500 mb-1">
-          4 · Opinión del Agente IA
+          3 · Opinión del Agente IA
         </p>
         <p className="text-[11px] text-gray-500 leading-snug">
           El agente leyó el código, cruzó los hallazgos con el propósito declarado
@@ -230,11 +230,12 @@ function ManifestRiskBlock({ ext }: { ext: InstalledExtension }) {
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
           <p className="text-[10px] font-bold tracking-wider uppercase text-gray-500 mb-1">
-            1 · Riesgo rápido (permisos declarados)
+            1 · Riesgo por permisos declarados
           </p>
           <p className="text-[11px] text-gray-500 leading-snug">
-            Cálculo del frontend leyendo el manifest de la extensión. Mide lo
-            que <strong>pide</strong> hacer, no lo que efectivamente hace.
+            Calculado localmente según los privilegios que la extensión{' '}
+            <strong>solicita</strong> en su manifest — sin leer el código.
+            Declarar un permiso no significa usarlo mal.
           </p>
         </div>
         <span
@@ -281,7 +282,9 @@ function ManifestRiskBlock({ ext }: { ext: InstalledExtension }) {
                   }`}
                   title={getPermissionDescription(perm, lang)}
                 >
-                  {perm}
+                  {perm.includes('://') || perm === '<all_urls>'
+                    ? getPermissionDescription(perm, lang)
+                    : perm}
                 </span>
               );
             })}
@@ -347,10 +350,12 @@ function UserVerdictBanner({ verdict }: { verdict: UserFacingVerdict }) {
     <section className={`rounded-xl border-2 p-4 space-y-3 ${style.card}`}>
       <div>
         <p className="text-[10px] font-bold tracking-wider uppercase text-gray-500 mb-1">
-          2 · Veredicto del análisis profundo
+          2 · Veredicto del análisis de código
         </p>
         <p className="text-[11px] text-gray-500 leading-snug">
-          El agente IA leyó el código fuente y emitió su veredicto.
+          El agente IA analizó el código fuente real — no solo los permisos —
+          y evaluó si la extensión <strong>usa</strong> esas capacidades de
+          forma legítima o sospechosa.
         </p>
       </div>
       <div className="flex items-center gap-2 flex-wrap">
@@ -515,10 +520,10 @@ const RESPUESTA_LABEL: Record<string, string> = {
   puede_afectar_otras_extensiones: '¿Puede afectar otras extensiones?',
 };
 
-const RESPUESTA_STYLES: Record<'si' | 'no_detectado' | 'posible', { badge: string; dot: string; label: string }> = {
-  si:           { badge: 'bg-red-100 text-red-700',     dot: 'bg-red-500',     label: 'Sí' },
-  posible:      { badge: 'bg-amber-100 text-amber-700', dot: 'bg-amber-400',   label: 'Posible' },
-  no_detectado: { badge: 'bg-gray-100 text-gray-500',   dot: 'bg-gray-300',    label: 'No detectado' },
+const RESPUESTA_STYLES: Record<'si' | 'posible' | 'no_detectado', { badge: string; dot: string; label: string }> = {
+  si:           { badge: 'bg-surface-100 text-gray-700',  dot: 'bg-gray-400',  label: 'Sí' },
+  posible:      { badge: 'bg-surface-100 text-gray-700',  dot: 'bg-gray-400',  label: 'Posible' },
+  no_detectado: { badge: 'bg-surface-100 text-gray-500',  dot: 'bg-gray-300',  label: 'No detectado' },
 };
 
 function RespuestasUsuarioBlock({
@@ -546,11 +551,11 @@ function RespuestasUsuarioBlock({
     <section className="space-y-2">
       <div>
         <p className="text-[10px] font-bold tracking-wider uppercase text-gray-500 mb-1">
-          3 · Preguntas frecuentes
+          4 · Preguntas frecuentes
         </p>
         <p className="text-[11px] text-gray-500 leading-snug">
           {fromAgent
-            ? 'Respuestas del agente IA basadas en el código analizado.'
+            ? 'El agente IA respondió según el código analizado. "Sí" significa que la capacidad existe — no necesariamente que sea maliciosa.'
             : 'Respuestas derivadas del análisis estático (el agente no estuvo disponible).'}
         </p>
       </div>
@@ -927,13 +932,16 @@ function ExtensionDrawer({
                 </details>
               )}
 
-              {/* 3 · Preguntas frecuentes — respuestas del agente IA */}
-              {report.agente1?.respuestas_usuario && Object.keys(report.agente1.respuestas_usuario).length > 0 && (
-                <RespuestasUsuarioBlock respuestas={report.agente1.respuestas_usuario} fromAgent={true} />
-              )}
-
-              {/* 4 · Opinión del Agente IA — evaluación narrativa completa */}
+              {/* 3 · Opinión del Agente IA — evaluación narrativa completa */}
               {report.agente1 && <Agent1Summary agente1={report.agente1} />}
+
+              {/* 4 · Preguntas frecuentes — respuestas del agente IA */}
+              {report.agente1?.respuestas_usuario && Object.keys(report.agente1.respuestas_usuario).length > 0 && (
+                <RespuestasUsuarioBlock
+                  respuestas={report.agente1.respuestas_usuario}
+                  fromAgent={true}
+                />
+              )}
 
               {/* Bloque 3 — Desglose técnico por categoría (colapsado) */}
               {report.resumen_usuario && report.resumen_usuario.length > 0 && (

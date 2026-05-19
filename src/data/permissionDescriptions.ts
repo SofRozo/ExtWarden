@@ -84,8 +84,25 @@ export function getPermissionDescription(permission: string, lang: 'es' | 'en'):
   if (entry) return entry[lang];
 
   // Host patterns como "https://example.com/*"
-  if (permission.includes('://')) {
-    const display = permission.replace(/\*:\/\/\*\.\*\/\*/, '*.*').replace(/https?:\/\//, '');
+  if (permission.includes('://') || permission === '<all_urls>') {
+    const isUniversal =
+      permission === '<all_urls>' ||
+      permission === '*://*/*' ||
+      permission === 'http://*/*' ||
+      permission === 'https://*/*';
+    if (isUniversal) {
+      return lang === 'es' ? 'Todos los sitios web' : 'All websites';
+    }
+    // Patrón de subdominio wildcard: *://*.example.com/*
+    const subdomainMatch = permission.match(/^[*a-z]+:\/\/\*\.(.+?)\/.*$/);
+    if (subdomainMatch) {
+      return lang === 'es'
+        ? `Todos los subdominios de ${subdomainMatch[1]}`
+        : `All subdomains of ${subdomainMatch[1]}`;
+    }
+    // Dominio específico: https://example.com/*
+    const domainMatch = permission.match(/^[*a-z]+:\/\/([^/]+)\//);
+    const display = domainMatch ? domainMatch[1] : permission;
     return lang === 'es' ? `Accede a: ${display}` : `Access: ${display}`;
   }
 

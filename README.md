@@ -1,74 +1,40 @@
 # ExtWarden
 
-Extensión de Chrome que analiza los permisos de tus extensiones instaladas y te protege en sitios sensibles.
+Extensión de Chrome que evalúa el riesgo de las extensiones instaladas mediante dos niveles de análisis: una puntuación local instantánea basada en permisos, y un análisis profundo de código fuente con IA a través del backend Extension Warden.
 
-## ¿Qué hace?
+## Funcionalidades
 
-- Analiza automáticamente los permisos de cada extensión instalada
-- Permite definir sitios sensibles por categoría (bancos, correo, universidad)
-- Desactiva temporalmente las demás extensiones cuando visitas un sitio sensible
-- Disponible en Español e Inglés
-- Todo se procesa localmente — tus datos nunca salen de tu navegador
+- **Auditoría de extensiones** — puntuación de riesgo local + análisis profundo con AST y LLM opcional
+- **Zonas de contexto** — deshabilita automáticamente otras extensiones al entrar a sitios sensibles (banca, correo, gobierno)
+- **Vigilancia de actualizaciones** — detecta cuando una extensión actualiza sus permisos y la deshabilita hasta revisión
+- **Popup** — resumen rápido de extensiones activas y estado de protección
 
-## ¿Cómo funciona?
+## Análisis profundo (backend requerido)
 
-1. La extensión lee la lista de extensiones instaladas y sus permisos usando la API de Chrome.
-2. Cada extensión recibe un puntaje de riesgo basado en sus permisos y el alcance de sus permisos de host.
-3. Cuando navegas a un sitio que marcaste como sensible, ExtWarden desactiva temporalmente las demás extensiones y las restaura al salir.
-
-## Fórmula de riesgo
-
-`R = Σ(Peso × f(H))` para permisos sensibles al host + `Σ(Peso)` para permisos estáticos.
-
-- 69 permisos de Chrome clasificados en 4 niveles de severidad
-- Factor de alcance de host: 0.0 (ninguno) → 0.3 (activeTab) → 0.5 (específico) → 0.8 (wildcard) → 1.0 (<all_urls>)
-
-## Interpretación del riesgo
-
-| Puntaje | Nivel |
-|---------|-------|
-| 0-10    | Bajo  |
-| 11-25   | Medio |
-| 26-50   | Alto  |
-| 51+     | Crítico |
+Requiere el backend Extension Warden corriendo en `http://localhost:3000`. Ver [backend-extension-warden/README.md](../backend-extension-warden/README.md).
 
 ## Desarrollo
 
 ```bash
-cd extension-ui
 npm install
 npm run dev     # preview en navegador
 npm run build   # genera dist/ para cargar en Chrome
 ```
 
-## Cargar en Chrome (modo desarrollador)
+**Cargar en Chrome:** `chrome://extensions/` → modo desarrollador → "Cargar sin empaquetar" → carpeta `dist/`.
 
-1. Abre `chrome://extensions/`
-2. Activa "Modo de desarrollador"
-3. Clic en "Cargar extensión sin empaquetar"
-4. Selecciona la carpeta `extension-ui/dist`
+## Documentación
 
-## Comprimir para distribución
+Ver [docs/](docs/) para documentación técnica completa:
 
-Después de `npm run build`, comprime el contenido de `dist/` en un `.zip`.
-
-**Windows (PowerShell):**
-```powershell
-Compress-Archive -Force -Path dist\* -DestinationPath extwarden.zip
-```
-
-**macOS / Linux:**
-```bash
-cd dist && zip -r ../extwarden.zip . && cd ..
-```
-
-El archivo `extwarden.zip` resultante es el que se sube al [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole/) o se comparte para instalación manual.
-
-> **Instalación manual desde el zip:** extrae el `.zip`, luego sigue los pasos de "Cargar en Chrome" apuntando a la carpeta extraída.
+- [Arquitectura](docs/architecture.md) — módulos, flujo de datos, almacenamiento
+- [Engine de riesgo local](docs/risk-engine.md) — fórmula, pesos, factor de alcance
+- [Análisis profundo](docs/deep-analysis.md) — flujo completo y resultado mostrado al usuario
+- [Zonas de contexto](docs/context-zones.md) — protección automática por dominio
+- [Service worker](docs/service-worker.md) — lógica de fondo y eventos
 
 ## Stack
 
 - React 18 + TypeScript + Vite 6 + Tailwind CSS
 - Chrome Extension Manifest V3
-- react-i18next (ES/EN)
-- Sin servidor — todo local en el navegador
+- react-i18next (ES / EN)
