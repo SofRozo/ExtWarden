@@ -1,6 +1,6 @@
 # Análisis Profundo
 
-El análisis profundo envía la extensión al backend Extension Warden para auditar su código fuente real con AST, taint analysis y un agente LLM. El resultado reemplaza la puntuación de permisos con un veredicto basado en lo que el código **efectivamente hace**.
+El análisis profundo envía la extensión al backend Extension Warden para auditar su código fuente real con AST, taint analysis y un módulo LLM explicativo basado en evidencia. El resultado reemplaza la puntuación de permisos con un veredicto basado en lo que el código **efectivamente hace**.
 
 ## Flujo completo
 
@@ -60,25 +60,25 @@ Aparece solo cuando el análisis profundo completó.
 - Badge combinado: **Veredicto · Nivel de riesgo**
   - Veredicto: `Benigna` / `Sospechosa` / `Maliciosa`
   - Nivel: `Bajo` / `Medio` / `Alto` / `Crítico`
-- Subtítulo: *"El agente IA analizó el código real y evaluó si la extensión usa esas capacidades de forma legítima o sospechosa."*
+- Subtítulo: *"El módulo LLM explicativo analizó el código real y evaluó si la extensión usa esas capacidades de forma legítima o sospechosa."*
 
 Debajo del bloque 2, si hay datos disponibles:
 
-**Propósito detectado** — una oración del agente describiendo qué hace la extensión.
+**Propósito detectado** — una oración del módulo LLM describiendo qué hace la extensión.
 
 **Dominios detectados** — dominios encontrados en el código o en `host_permissions`, agrupados por categoría sensible (Financiero, Identidad, Redes sociales, IA/LLM, Gubernamental, Desconocido).
 
 **Permisos declarados pero no usados** — permisos en el manifest que el análisis estático no detectó en el código. Una actualización futura podría activarlos sin que Chrome avise al usuario.
 
-### Bloque 3 — Opinión del Agente IA
+### Bloque 3 — Explicación del módulo LLM
 
-Texto narrativo generado por el LLM:
+Texto narrativo generado por el módulo LLM explicativo:
 - Párrafo de 4–8 oraciones explicando el comportamiento de la extensión en lenguaje cotidiano, cruzando los hallazgos con el propósito declarado
 - Recomendación directa al usuario (desinstalar / mantener con precaución / segura)
 
 ### Bloque 4 — Preguntas frecuentes
 
-10 preguntas respondidas por el agente con `Sí` / `Posible` / `No detectado` y una razón en texto que explica el porqué — sin color de alarma, la razón hace el trabajo explicativo.
+10 preguntas respondidas por el módulo LLM explicativo con `Sí` / `Posible` / `No detectado` y una razón en texto que explica el porqué — sin color de alarma, la razón hace el trabajo explicativo.
 
 | Pregunta |
 |----------|
@@ -93,7 +93,7 @@ Texto narrativo generado por el LLM:
 | ¿Tiene código oculto o sospechoso? |
 | ¿Puede afectar otras extensiones? |
 
-**Importante:** "Sí" significa que la capacidad existe en el código — no necesariamente que sea maliciosa. La razón del agente explica si esa capacidad es esperada para el propósito declarado o va más allá de él.
+**Importante:** "Sí" significa que la capacidad existe en el código — no necesariamente que sea maliciosa. La razón generada por el módulo LLM explica si esa capacidad es esperada para el propósito declarado o va más allá de él.
 
 ### Bloque adicional — Señales por categoría (colapsado)
 

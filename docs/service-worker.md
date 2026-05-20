@@ -31,7 +31,7 @@ submitToBackend(extensionId)
 - Si `failed` o 3 fallos consecutivos → marca como fallido
 
 **Normalización del reporte:**
-`normalizeReport(raw)` deriva un `riskLevel` ('CRITICAL'/'HIGH'/'MEDIUM'/'LOW'/'NONE') a partir del `veredicto_global` y `nivel_riesgo_inicial` del agente para que la UI pueda colorearlo sin lógica adicional.
+`normalizeReport(raw)` deriva un `riskLevel` ('CRITICAL'/'HIGH'/'MEDIUM'/'LOW'/'NONE') a partir del `veredicto_global` y `nivel_riesgo_inicial` del módulo LLM explicativo para que la UI pueda colorearlo sin lógica adicional.
 
 **Notificación al usuario:**
 Cuando el análisis completa, `chrome.notifications.create()` muestra una notificación con el veredicto. Al hacer clic en ella, abre el panel de opciones con el drawer de esa extensión ya abierto (`openDrawerForExtension` en storage).
