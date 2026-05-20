@@ -73,10 +73,10 @@ function BentoCard({
           {icon}
         </div>
         <p className="text-3xl font-bold text-gray-800">{value}</p>
-        <h3 className="text-xs font-bold text-gray-400 tracking-[0.08em] uppercase">{label}</h3>
+        <h3 className="text-sm font-bold text-gray-400 tracking-[0.08em] uppercase">{label}</h3>
       </div>
       <div className="pointer-events-none absolute bottom-0 left-0 right-0 translate-y-2 px-6 pb-4 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
-        <p className="text-[11px] text-gray-500">{description}</p>
+        <p className="text-[13px] text-gray-500">{description}</p>
       </div>
       <div className="pointer-events-none absolute inset-0 transition-all duration-300 group-hover:bg-black/[.02]" />
     </div>
@@ -130,21 +130,21 @@ function AgentFindingCard({ finding }: { finding: AgentFinding }) {
     <div className="border border-surface-100 rounded-xl p-3 space-y-1.5">
       <div className="flex items-center gap-2 flex-wrap">
         <span
-          className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${severityBadge[finding.severidad] ?? 'bg-gray-100 text-gray-600'}`}
+          className={`text-[12px] px-2 py-0.5 rounded font-bold uppercase ${severityBadge[finding.severidad] ?? 'bg-gray-100 text-gray-600'}`}
         >
           {finding.severidad}
         </span>
-        <span className="text-[10px] px-2 py-0.5 rounded bg-purple-100 text-purple-700 font-medium">
+        <span className="text-[12px] px-2 py-0.5 rounded bg-purple-100 text-purple-700 font-medium">
           {finding.tipo}
         </span>
-        <span className="text-[11px] text-gray-500 font-mono break-all">
+        <span className="text-[13px] text-gray-500 font-mono break-all">
           {finding.archivo}
           {finding.linea ? `:${finding.linea}` : ''}
         </span>
       </div>
-      <p className="text-sm text-gray-700 leading-snug">{finding.descripcion}</p>
+      <p className="text-base text-gray-700 leading-snug">{finding.descripcion}</p>
       {finding.snippet && (
-        <pre className="text-[11px] text-gray-600 bg-surface-50 rounded px-2 py-1 overflow-x-auto font-mono">
+        <pre className="text-[13px] text-gray-600 bg-surface-50 rounded px-2 py-1 overflow-x-auto font-mono">
           {finding.snippet}
         </pre>
       )}
@@ -160,7 +160,7 @@ function NarrativeFinding({ text }: { text: string }) {
       <span className="mt-0.5 flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center bg-amber-100 text-amber-600">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
       </span>
-      <p className="text-sm text-gray-700 leading-snug">{text}</p>
+      <p className="text-base text-gray-700 leading-snug">{text}</p>
     </div>
   );
 }
@@ -174,8 +174,8 @@ function PropositoBlock({ proposito }: { proposito: string }) {
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
       </span>
       <div>
-        <p className="text-[10px] font-bold tracking-wider uppercase text-gray-400 mb-0.5">Propósito detectado</p>
-        <p className="text-[12px] text-gray-700 leading-snug">{proposito}</p>
+        <p className="text-[12px] font-bold tracking-wider uppercase text-gray-400 mb-0.5">Propósito detectado</p>
+        <p className="text-[14px] text-gray-700 leading-snug">{proposito}</p>
       </div>
     </section>
   );
@@ -187,10 +187,10 @@ function Agent1Summary({ agente1 }: { agente1: NonNullable<SandboxReport['agente
   return (
     <section className="space-y-3">
       <div>
-        <p className="text-[10px] font-bold tracking-wider uppercase text-gray-500 mb-1">
+        <p className="text-[12px] font-bold tracking-wider uppercase text-gray-500 mb-1">
           3 · Opinión del Agente IA
         </p>
-        <p className="text-[11px] text-gray-500 leading-snug">
+        <p className="text-[13px] text-gray-500 leading-snug">
           El agente leyó el código, cruzó los hallazgos con el propósito declarado
           y emitió su propia evaluación.
         </p>
@@ -198,11 +198,11 @@ function Agent1Summary({ agente1 }: { agente1: NonNullable<SandboxReport['agente
 
       <div className="rounded-xl border border-brand-100 bg-brand-50/40 p-4">
         {agente1.explicacion ? (
-          <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
+          <p className="text-base text-gray-800 leading-relaxed whitespace-pre-wrap">
             {agente1.explicacion}
           </p>
         ) : (
-          <p className="text-sm text-gray-500 italic">El agente no generó una evaluación.</p>
+          <p className="text-base text-gray-500 italic">El agente no generó una evaluación.</p>
         )}
       </div>
     </section>
@@ -229,17 +229,17 @@ function ManifestRiskBlock({ ext }: { ext: InstalledExtension }) {
     <section className="rounded-xl border border-surface-200 bg-surface-50/50 p-4 space-y-3">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
-          <p className="text-[10px] font-bold tracking-wider uppercase text-gray-500 mb-1">
+          <p className="text-[12px] font-bold tracking-wider uppercase text-gray-500 mb-1">
             1 · Riesgo por permisos declarados
           </p>
-          <p className="text-[11px] text-gray-500 leading-snug">
+          <p className="text-[13px] text-gray-500 leading-snug">
             Calculado localmente según los privilegios que la extensión{' '}
             <strong>solicita</strong> en su manifest — sin leer el código.
             Declarar un permiso no significa usarlo mal.
           </p>
         </div>
         <span
-          className={`inline-flex items-center text-xs font-bold px-3 py-1 rounded-full ${badge.color}`}
+          className={`inline-flex items-center text-sm font-bold px-3 py-1 rounded-full ${badge.color}`}
         >
           {({ critical: 'Crítico', high: 'Alto', medium: 'Moderado', low: 'Bajo', safe: 'Sin riesgo' } as const)[ext.riskLevel] ?? ext.riskLevel}
         </span>
@@ -247,26 +247,26 @@ function ManifestRiskBlock({ ext }: { ext: InstalledExtension }) {
       <div className="grid grid-cols-3 gap-2 text-center">
         <div className="rounded-lg bg-white border border-surface-100 px-2 py-1.5">
           <p className="text-base font-bold text-red-600">{critical.length}</p>
-          <p className="text-[9px] uppercase font-semibold text-gray-400 tracking-wide">
+          <p className="text-[13px] uppercase font-semibold text-gray-400 tracking-wide">
             Críticos
           </p>
         </div>
         <div className="rounded-lg bg-white border border-surface-100 px-2 py-1.5">
           <p className="text-base font-bold text-amber-600">{elevated.length}</p>
-          <p className="text-[9px] uppercase font-semibold text-gray-400 tracking-wide">
+          <p className="text-[13px] uppercase font-semibold text-gray-400 tracking-wide">
             Elevados
           </p>
         </div>
         <div className="rounded-lg bg-white border border-surface-100 px-2 py-1.5">
           <p className="text-base font-bold text-gray-500">{low.length}</p>
-          <p className="text-[9px] uppercase font-semibold text-gray-400 tracking-wide">
+          <p className="text-[13px] uppercase font-semibold text-gray-400 tracking-wide">
             Bajos
           </p>
         </div>
       </div>
       {totalSensitive > 0 && (
         <div>
-          <p className="text-[10px] font-semibold tracking-wider uppercase text-gray-400 mb-1">
+          <p className="text-[12px] font-semibold tracking-wider uppercase text-gray-400 mb-1">
             Permisos sensibles declarados
           </p>
           <div className="flex flex-wrap gap-1">
@@ -275,7 +275,7 @@ function ManifestRiskBlock({ ext }: { ext: InstalledExtension }) {
               return (
                 <span
                   key={perm}
-                  className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
+                  className={`text-[12px] font-mono px-1.5 py-0.5 rounded ${
                     isCritical
                       ? 'bg-red-50 text-red-700 border border-red-200'
                       : 'bg-amber-50 text-amber-700 border border-amber-200'
@@ -289,7 +289,7 @@ function ManifestRiskBlock({ ext }: { ext: InstalledExtension }) {
               );
             })}
             {totalSensitive > 12 && (
-              <span className="text-[10px] text-gray-400 font-medium px-1.5 py-0.5">
+              <span className="text-[12px] text-gray-400 font-medium px-1.5 py-0.5">
                 +{totalSensitive - 12} más
               </span>
             )}
@@ -349,10 +349,10 @@ function UserVerdictBanner({ verdict }: { verdict: UserFacingVerdict }) {
   return (
     <section className={`rounded-xl border-2 p-4 space-y-3 ${style.card}`}>
       <div>
-        <p className="text-[10px] font-bold tracking-wider uppercase text-gray-500 mb-1">
+        <p className="text-[12px] font-bold tracking-wider uppercase text-gray-500 mb-1">
           2 · Veredicto del análisis de código
         </p>
-        <p className="text-[11px] text-gray-500 leading-snug">
+        <p className="text-[13px] text-gray-500 leading-snug">
           El agente IA analizó el código fuente real — no solo los permisos —
           y evaluó si la extensión <strong>usa</strong> esas capacidades de
           forma legítima o sospechosa.
@@ -360,7 +360,7 @@ function UserVerdictBanner({ verdict }: { verdict: UserFacingVerdict }) {
       </div>
       <div className="flex items-center gap-2 flex-wrap">
         <span
-          className={`inline-flex items-center gap-1.5 text-sm font-bold px-3 py-1.5 rounded-full ${style.badge}`}
+          className={`inline-flex items-center gap-1.5 text-base font-bold px-3 py-1.5 rounded-full ${style.badge}`}
         >
           <span
             className="w-2 h-2 rounded-full"
@@ -390,7 +390,7 @@ function PermisosNoUsadosBlock({ permisos }: { permisos: PermisNoUsado[] }) {
 
   return (
     <div className="space-y-2">
-      <p className="text-[11px] text-gray-500 leading-snug">
+      <p className="text-[13px] text-gray-500 leading-snug">
         Estos permisos están en el manifest pero el análisis no los detectó en el código.
         Una actualización futura podría activarlos sin que Chrome te avise, porque el permiso
         ya fue aprobado.
@@ -401,13 +401,13 @@ function PermisosNoUsadosBlock({ permisos }: { permisos: PermisNoUsado[] }) {
           return (
             <div key={p.permission} className="px-3 py-2.5 space-y-0.5">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-[12px] font-mono font-semibold text-gray-700">{p.permission}</p>
-                <span className={`flex-shrink-0 inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${style.badge}`}>
+                <p className="text-[14px] font-mono font-semibold text-gray-700">{p.permission}</p>
+                <span className={`flex-shrink-0 inline-flex items-center gap-1 text-[12px] font-bold px-2 py-0.5 rounded-full ${style.badge}`}>
                   <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`} />
                   {style.label}
                 </span>
               </div>
-              <p className="text-[11px] text-gray-500 leading-snug">{p.descripcion}</p>
+              <p className="text-[13px] text-gray-500 leading-snug">{p.descripcion}</p>
             </div>
           );
         })}
@@ -462,10 +462,10 @@ function DomainsBlock({
   return (
     <section className="space-y-2">
       <div>
-        <p className="text-[10px] font-bold tracking-wider uppercase text-gray-500 mb-1">
+        <p className="text-[12px] font-bold tracking-wider uppercase text-gray-500 mb-1">
           Dominios detectados
         </p>
-        <p className="text-[11px] text-gray-500 leading-snug">
+        <p className="text-[13px] text-gray-500 leading-snug">
           Dominios sensibles encontrados en el código o declarados como permisos de host.
           Los de categoría <span className="font-semibold text-gray-600">desconocida</span> son terceros
           que el análisis estático no pudo clasificar automáticamente.
@@ -478,19 +478,19 @@ function DomainsBlock({
             <details key={cat} className="rounded-xl border border-surface-200 bg-white overflow-hidden" open={cat !== 'desconocido'}>
               <summary className="cursor-pointer px-3 py-2 flex items-center gap-2 select-none hover:bg-surface-50">
                 <span className="text-base leading-none">{meta.icon}</span>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${meta.color}`}>{meta.label}</span>
-                <span className="text-[11px] text-gray-400 ml-auto">{findings.length} dominio(s)</span>
+                <span className={`text-[12px] font-bold px-2 py-0.5 rounded-full ${meta.color}`}>{meta.label}</span>
+                <span className="text-[13px] text-gray-400 ml-auto">{findings.length} dominio(s)</span>
               </summary>
               <div className="divide-y divide-surface-100">
                 {findings.map((f, i) => (
                   <div key={i} className="px-3 py-2 space-y-0.5">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[12px] font-mono font-semibold text-gray-700 break-all">{f.domain}</span>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-surface-100 text-gray-500 flex-shrink-0">
+                      <span className="text-[14px] font-mono font-semibold text-gray-700 break-all">{f.domain}</span>
+                      <span className="text-[12px] px-1.5 py-0.5 rounded bg-surface-100 text-gray-500 flex-shrink-0">
                         {DISCOVERY_LABEL[f.discoveryType] ?? f.discoveryType}
                       </span>
                     </div>
-                    <p className="text-[11px] text-gray-400 leading-snug">
+                    <p className="text-[13px] text-gray-400 leading-snug">
                       {f.filePath === 'manifest.json' ? 'manifest.json' : `${f.filePath}`}
                       {f.line ? ` · línea ${f.line}` : ''}
                     </p>
@@ -550,10 +550,10 @@ function RespuestasUsuarioBlock({
   return (
     <section className="space-y-2">
       <div>
-        <p className="text-[10px] font-bold tracking-wider uppercase text-gray-500 mb-1">
+        <p className="text-[12px] font-bold tracking-wider uppercase text-gray-500 mb-1">
           4 · Preguntas frecuentes
         </p>
-        <p className="text-[11px] text-gray-500 leading-snug">
+        <p className="text-[13px] text-gray-500 leading-snug">
           {fromAgent
             ? 'El agente IA respondió según el código analizado. "Sí" significa que la capacidad existe — no necesariamente que sea maliciosa.'
             : 'Respuestas derivadas del análisis estático (el agente no estuvo disponible).'}
@@ -565,14 +565,14 @@ function RespuestasUsuarioBlock({
           return (
             <div key={key} className="px-3 py-2 space-y-0.5">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-[12px] text-gray-700 leading-snug">{RESPUESTA_LABEL[key] ?? key}</p>
-                <span className={`flex-shrink-0 inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${style.badge}`}>
+                <p className="text-[14px] text-gray-700 leading-snug">{RESPUESTA_LABEL[key] ?? key}</p>
+                <span className={`flex-shrink-0 inline-flex items-center gap-1 text-[12px] font-bold px-2 py-0.5 rounded-full ${style.badge}`}>
                   <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`} />
                   {style.label}
                 </span>
               </div>
               {razon && (
-                <p className="text-[11px] text-gray-400 leading-snug italic">{razon}</p>
+                <p className="text-[13px] text-gray-400 leading-snug italic">{razon}</p>
               )}
             </div>
           );
@@ -596,7 +596,7 @@ function CodeEvidenceBlock({ findings }: { findings: HallazgoCodigo[] }) {
   if (findings.length === 0) return null;
   return (
     <details className="mt-1">
-      <summary className="cursor-pointer text-[11px] font-medium text-brand-600 hover:text-brand-700 select-none">
+      <summary className="cursor-pointer text-[13px] font-medium text-brand-600 hover:text-brand-700 select-none">
         Evidencia en el código ({findings.length})
       </summary>
       <div className="mt-2 space-y-1.5">
@@ -604,15 +604,15 @@ function CodeEvidenceBlock({ findings }: { findings: HallazgoCodigo[] }) {
           <div key={i} className="rounded-lg border border-surface-100 bg-white px-2.5 py-2 space-y-0.5">
             <div className="flex items-center gap-1.5 flex-wrap">
               <span
-                className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${FILE_TYPE_COLORS[f.fileType] ?? 'bg-surface-100 text-gray-500'}`}
+                className={`text-[13px] px-1.5 py-0.5 rounded font-bold uppercase ${FILE_TYPE_COLORS[f.fileType] ?? 'bg-surface-100 text-gray-500'}`}
               >
                 {f.fileType}
               </span>
-              <span className="text-[10px] font-mono text-gray-400 break-all">
+              <span className="text-[12px] font-mono text-gray-400 break-all">
                 {f.filePath}:{f.line}
               </span>
             </div>
-            <p className="text-[11px] text-gray-600 leading-snug">{f.texto}</p>
+            <p className="text-[13px] text-gray-600 leading-snug">{f.texto}</p>
           </div>
         ))}
       </div>
@@ -698,10 +698,10 @@ function UserRiskCategoryCard({ item }: { item: UserRiskSummaryItem }) {
       <div className="flex items-start gap-2 min-w-0">
         <span className="text-base leading-none mt-0.5 flex-shrink-0">{icon}</span>
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-gray-800 leading-snug">
+          <p className="text-base font-semibold text-gray-800 leading-snug">
             {item.titulo}
           </p>
-          <p className="text-[12px] text-gray-600 leading-snug mt-0.5">
+          <p className="text-[14px] text-gray-600 leading-snug mt-0.5">
             {item.resumen}
           </p>
         </div>
@@ -711,7 +711,7 @@ function UserRiskCategoryCard({ item }: { item: UserRiskSummaryItem }) {
       {item.preguntas_responde.length > 0 && (
         <ul className="space-y-0.5 pl-1">
           {item.preguntas_responde.map((q, i) => (
-            <li key={i} className="text-[11px] text-gray-400 italic leading-snug">
+            <li key={i} className="text-[13px] text-gray-400 italic leading-snug">
               {q}
             </li>
           ))}
@@ -722,7 +722,7 @@ function UserRiskCategoryCard({ item }: { item: UserRiskSummaryItem }) {
       {item.evidencias.length > 0 && (
         <ul className="space-y-1 pl-1">
           {item.evidencias.slice(0, expanded ? undefined : 3).map((e, i) => (
-            <li key={i} className="text-[11px] text-gray-700 leading-snug">
+            <li key={i} className="text-[13px] text-gray-700 leading-snug">
               · {e}
             </li>
           ))}
@@ -732,7 +732,7 @@ function UserRiskCategoryCard({ item }: { item: UserRiskSummaryItem }) {
       {hasMore && (
         <button
           onClick={() => setExpanded((v) => !v)}
-          className="text-[11px] text-brand-600 hover:text-brand-700 font-medium"
+          className="text-[13px] text-brand-600 hover:text-brand-700 font-medium"
         >
           {expanded ? 'Ocultar detalle' : 'Ver más →'}
         </button>
@@ -761,7 +761,7 @@ function UserRiskCategoriesGrid({
   const inactive = sorted.filter((item) => item.estado === 'no_detectado');
   return (
     <section>
-      <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-3">
+      <h4 className="text-[13px] font-bold text-gray-400 uppercase tracking-wider mb-3">
         Señales principales por categoría
       </h4>
       <div className="space-y-2">
@@ -771,7 +771,7 @@ function UserRiskCategoriesGrid({
       </div>
       {inactive.length > 0 && (
         <details className="mt-3 rounded-xl border border-surface-100 bg-white p-3">
-          <summary className="cursor-pointer text-[12px] font-semibold text-gray-500">
+          <summary className="cursor-pointer text-[14px] font-semibold text-gray-500">
             Categorías sin señales fuertes ({inactive.length})
           </summary>
           <div className="mt-3 space-y-2">
@@ -790,7 +790,7 @@ function UserRiskCategoriesGrid({
 function SkeletonAnalysis() {
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2 text-sm text-gray-400">
+      <div className="flex items-center gap-2 text-base text-gray-400">
         <div className="w-4 h-4 border-2 border-brand-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
         <span>Analizando comportamiento real de esta extensión...</span>
       </div>
@@ -829,7 +829,7 @@ function ExtensionDrawer({
         />
       )}
       <div
-        className={`fixed top-0 right-0 h-full w-[460px] bg-white shadow-2xl z-50 flex flex-col
+        className={`fixed top-0 right-0 h-full w-[800px] bg-white shadow-2xl z-50 flex flex-col
           transform transition-transform duration-300 ease-in-out
           ${open ? 'translate-x-0' : 'translate-x-full'}`}
       >
@@ -840,12 +840,12 @@ function ExtensionDrawer({
               <img src={ext.icons[ext.icons.length - 1].url} alt="" className="w-10 h-10 rounded-xl flex-shrink-0" />
             ) : (
               <div className="w-10 h-10 rounded-xl bg-brand-100 flex items-center justify-center flex-shrink-0">
-                <span className="text-sm font-bold text-brand-600">{ext.name.charAt(0)}</span>
+                <span className="text-base font-bold text-brand-600">{ext.name.charAt(0)}</span>
               </div>
             )}
             <div className="min-w-0">
-              <p className="text-sm font-bold text-gray-800 truncate">{ext.name}</p>
-              <p className="text-xs text-gray-400">v{ext.version}</p>
+              <p className="text-base font-bold text-gray-800 truncate">{ext.name}</p>
+              <p className="text-sm text-gray-400">v{ext.version}</p>
             </div>
           </div>
           <button
@@ -864,15 +864,15 @@ function ExtensionDrawer({
             <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
               <svg className="flex-shrink-0 mt-0.5 text-amber-500" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
               <div className="min-w-0">
-                <p className="text-[12px] font-semibold text-amber-800 leading-snug">
+                <p className="text-[14px] font-semibold text-amber-800 leading-snug">
                   Esta extensión se actualizó de v{report.extensionVersion} a v{ext.version}
                 </p>
-                <p className="text-[11px] text-amber-700 mt-0.5 leading-snug">
+                <p className="text-[13px] text-amber-700 mt-0.5 leading-snug">
                   El análisis anterior puede no reflejar el comportamiento actual. Reanaliza para obtener un veredicto actualizado.
                 </p>
                 <button
                   onClick={onReanalyze}
-                  className="mt-2 text-[11px] font-semibold text-amber-800 underline underline-offset-2 hover:text-amber-900"
+                  className="mt-2 text-[13px] font-semibold text-amber-800 underline underline-offset-2 hover:text-amber-900"
                 >
                   Reanalizar ahora →
                 </button>
@@ -885,7 +885,7 @@ function ExtensionDrawer({
               {/* Risk badge — derived backend score */}
               <div className="flex items-center gap-2 flex-wrap">
                 <span
-                  className={`inline-flex items-center gap-1.5 text-sm font-bold px-3 py-1.5 rounded-full ${backendRiskBadge[report.riskLevel]?.color ?? 'bg-gray-100 text-gray-600'}`}
+                  className={`inline-flex items-center gap-1.5 text-base font-bold px-3 py-1.5 rounded-full ${backendRiskBadge[report.riskLevel]?.color ?? 'bg-gray-100 text-gray-600'}`}
                 >
                   <span
                     className="w-2 h-2 rounded-full"
@@ -893,7 +893,7 @@ function ExtensionDrawer({
                   />
                   {backendRiskBadge[report.riskLevel]?.label ?? report.riskLevel}
                 </span>
-                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-semibold">
+                <span className="text-sm bg-green-100 text-green-700 px-2 py-1 rounded-full font-semibold">
                   Verificado ✓
                 </span>
               </div>
@@ -922,7 +922,7 @@ function ExtensionDrawer({
               {/* Permisos declarados pero no usados — superficie de ataque latente */}
               {report.permisos_no_usados.length > 0 && (
                 <details className="rounded-xl border border-amber-200 bg-white overflow-hidden">
-                  <summary className="cursor-pointer px-4 py-3 text-[12px] font-semibold text-amber-700 hover:text-amber-800 select-none flex items-center gap-2">
+                  <summary className="cursor-pointer px-4 py-3 text-[14px] font-semibold text-amber-700 hover:text-amber-800 select-none flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0" />
                     Permisos declarados pero no usados ({report.permisos_no_usados.length})
                   </summary>
@@ -946,7 +946,7 @@ function ExtensionDrawer({
               {/* Bloque 3 — Desglose técnico por categoría (colapsado) */}
               {report.resumen_usuario && report.resumen_usuario.length > 0 && (
                 <details className="rounded-xl border border-surface-200 bg-white">
-                  <summary className="cursor-pointer px-4 py-3 text-[12px] font-semibold text-gray-500 hover:text-gray-700 select-none">
+                  <summary className="cursor-pointer px-4 py-3 text-[14px] font-semibold text-gray-500 hover:text-gray-700 select-none">
                     Ver detalles técnicos por categoría ({report.resumen_usuario.filter(i => i.estado !== 'no_detectado').length} señales)
                   </summary>
                   <div className="px-4 pb-4 pt-1">
@@ -958,7 +958,7 @@ function ExtensionDrawer({
               {/* Hallazgos adicionales del agente */}
               {report.agente1?.hallazgos_propios && report.agente1.hallazgos_propios.length > 0 && (
                 <details className="rounded-xl border border-surface-200 bg-white">
-                  <summary className="cursor-pointer px-4 py-3 text-[12px] font-semibold text-gray-500 hover:text-gray-700 select-none">
+                  <summary className="cursor-pointer px-4 py-3 text-[14px] font-semibold text-gray-500 hover:text-gray-700 select-none">
                     Ver hallazgos adicionales del agente ({report.agente1.hallazgos_propios.length})
                   </summary>
                   <div className="px-4 pb-4 pt-1 space-y-2">
@@ -976,8 +976,8 @@ function ExtensionDrawer({
               <p className="text-gray-400 text-2xl flex justify-center mb-2">
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
               </p>
-              <p className="text-sm text-gray-500">El análisis ha fallado</p>
-              <p className="text-xs text-gray-400">Usa el botón de abajo para reintentar</p>
+              <p className="text-base text-gray-500">El análisis ha fallado</p>
+              <p className="text-sm text-gray-400">Usa el botón de abajo para reintentar</p>
             </div>
           )}
 
@@ -986,8 +986,8 @@ function ExtensionDrawer({
               <p className="text-gray-400 text-2xl flex justify-center mb-2">
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
               </p>
-              <p className="text-sm text-gray-500">Sin datos de análisis todavía</p>
-              <p className="text-xs text-gray-400">Usa el botón de abajo para iniciar el análisis</p>
+              <p className="text-base text-gray-500">Sin datos de análisis todavía</p>
+              <p className="text-sm text-gray-400">Usa el botón de abajo para iniciar el análisis</p>
             </div>
           )}
         </div>
@@ -997,7 +997,7 @@ function ExtensionDrawer({
           <button
             onClick={onReanalyze}
             disabled={isAnalyzing}
-            className={`w-full py-2.5 px-4 rounded-xl border text-sm font-medium transition-colors ${
+            className={`w-full py-2.5 px-4 rounded-xl border text-base font-medium transition-colors ${
               isAnalyzing
                 ? 'border-gray-200 text-gray-300 cursor-not-allowed'
                 : 'border-brand-300 text-brand-600 hover:bg-brand-50'
@@ -1048,38 +1048,38 @@ function GlossaryModal({ open, onClose }: { open: boolean; onClose: () => void }
         </div>
         <div className="p-6 overflow-y-auto space-y-5">
           <div>
-            <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2 mb-1">
+            <h4 className="text-base font-bold text-gray-800 flex items-center gap-2 mb-1">
               <Globe size={16} className="text-blue-500" />
               {t('glossary.content_script.title', 'Content Script')}
             </h4>
-            <p className="text-sm text-gray-600 leading-relaxed">
+            <p className="text-base text-gray-600 leading-relaxed">
               {t('glossary.content_script.desc', 'Archivos que viven adentro de las páginas web que visitas (como tu banco o Facebook). Pueden ver o modificar todo lo que ves en la pantalla.')}
             </p>
           </div>
           <div>
-            <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2 mb-1">
+            <h4 className="text-base font-bold text-gray-800 flex items-center gap-2 mb-1">
               <Radio size={16} className="text-purple-500" />
               {t('glossary.background.title', 'Background / Service Worker')}
             </h4>
-            <p className="text-sm text-gray-600 leading-relaxed">
+            <p className="text-base text-gray-600 leading-relaxed">
               {t('glossary.background.desc', 'El "cerebro invisible" de la extensión. Se ejecuta de forma oculta todo el tiempo, coordinando permisos y comunicándose con servidores en Internet sin que lo notes.')}
             </p>
           </div>
           <div>
-            <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2 mb-1">
+            <h4 className="text-base font-bold text-gray-800 flex items-center gap-2 mb-1">
               <Edit3 size={16} className="text-indigo-500" />
               {t('glossary.popup.title', 'Popup')}
             </h4>
-            <p className="text-sm text-gray-600 leading-relaxed">
+            <p className="text-base text-gray-600 leading-relaxed">
               {t('glossary.popup.desc', 'La ventanita visual que se abre únicamente cuando haces clic en el ícono de la extensión arriba a la derecha.')}
             </p>
           </div>
           <div>
-            <h4 className="text-sm font-bold text-gray-800 flex items-center gap-2 mb-1">
+            <h4 className="text-base font-bold text-gray-800 flex items-center gap-2 mb-1">
               <Key size={16} className="text-amber-500" />
               {t('glossary.manifest.title', 'Manifest')}
             </h4>
-            <p className="text-sm text-gray-600 leading-relaxed">
+            <p className="text-base text-gray-600 leading-relaxed">
               {t('glossary.manifest.desc', 'La tarjeta de presentación o "contrato" de la extensión, donde le pide permisos a Chrome para funcionar.')}
             </p>
           </div>
@@ -1205,13 +1205,13 @@ export default function ExtensionAudit() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">{t('audit.title')}</h1>
-          <p className="text-sm text-gray-400 mt-0.5">{t('audit.subtitle')}</p>
+          <p className="text-base text-gray-400 mt-0.5">{t('audit.subtitle')}</p>
           {uploadError && (
-            <p className="text-xs text-red-500 mt-1 max-w-xl truncate">{uploadError}</p>
+            <p className="text-sm text-red-500 mt-1 max-w-xl truncate">{uploadError}</p>
           )}
         </div>
         <label
-          className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-surface-200 text-sm font-medium transition-colors ${
+          className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-surface-200 text-base font-medium transition-colors ${
             uploading
               ? 'text-gray-400 bg-surface-50 cursor-wait'
               : 'text-gray-600 hover:bg-surface-50 cursor-pointer'
@@ -1310,24 +1310,24 @@ export default function ExtensionAudit() {
               value={search}
               onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
               placeholder={t('audit.search')}
-              className="pl-9 pr-4 py-2 w-56 bg-surface-50 border border-surface-200 rounded-lg text-sm text-gray-600 placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 transition-all"
+              className="pl-9 pr-4 py-2 w-56 bg-surface-50 border border-surface-200 rounded-lg text-base text-gray-600 placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 transition-all"
             />
           </div>
         </div>
 
-        <table className="w-full text-sm">
+        <table className="w-full text-base">
           <thead>
             <tr className="border-b border-surface-100">
-              <th className="text-left px-6 py-3.5 text-[11px] font-semibold text-gray-400 tracking-[0.06em]">{t('audit.columns.extension')}</th>
-              <th className="text-left px-4 py-3.5 text-[11px] font-semibold text-gray-400 tracking-[0.06em]">{t('audit.columns.permissions')}</th>
-              <th className="text-left px-4 py-3.5 text-[11px] font-semibold text-gray-400 tracking-[0.06em]">{t('audit.columns.risk')}</th>
-              <th className="text-right px-6 py-3.5 text-[11px] font-semibold text-gray-400 tracking-[0.06em]">{t('audit.columns.action')}</th>
+              <th className="text-left px-6 py-3.5 text-[13px] font-semibold text-gray-400 tracking-[0.06em]">{t('audit.columns.extension')}</th>
+              <th className="text-left px-4 py-3.5 text-[13px] font-semibold text-gray-400 tracking-[0.06em]">{t('audit.columns.permissions')}</th>
+              <th className="text-left px-4 py-3.5 text-[13px] font-semibold text-gray-400 tracking-[0.06em]">{t('audit.columns.risk')}</th>
+              <th className="text-right px-6 py-3.5 text-[13px] font-semibold text-gray-400 tracking-[0.06em]">{t('audit.columns.action')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-surface-100">
             {paged.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-6 py-12 text-center text-sm text-gray-400">
+                <td colSpan={4} className="px-6 py-12 text-center text-base text-gray-400">
                   {lang === 'es' ? 'No se encontraron extensiones' : 'No extensions found'}
                 </td>
               </tr>
@@ -1352,7 +1352,7 @@ export default function ExtensionAudit() {
         </table>
 
         <div className="flex items-center justify-between px-6 py-4 border-t border-surface-100">
-          <p className="text-xs text-gray-400">
+          <p className="text-sm text-gray-400">
             {t('audit.showing', { from: paged.length, total: filtered.length })}
           </p>
           <div className="flex items-center gap-1">
@@ -1367,7 +1367,7 @@ export default function ExtensionAudit() {
               <button
                 key={p}
                 onClick={() => setCurrentPage(p)}
-                className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
+                className={`w-8 h-8 rounded-lg text-base font-medium transition-colors ${
                   p === currentPage
                     ? 'bg-brand-600 text-white'
                     : 'border border-surface-200 text-gray-500 hover:bg-surface-50'
@@ -1472,15 +1472,15 @@ function ExtRow({
             <img src={ext.icons[ext.icons.length - 1].url} alt="" className="w-9 h-9 rounded-xl flex-shrink-0" />
           ) : (
             <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
               style={{ backgroundColor: color }}
             >
               {ext.name.charAt(0).toUpperCase()}
             </div>
           )}
           <div>
-            <p className="text-sm font-medium text-gray-800">{ext.name}</p>
-            <p className="text-[11px] text-gray-400">v{ext.version}</p>
+            <p className="text-base font-medium text-gray-800">{ext.name}</p>
+            <p className="text-[13px] text-gray-400">v{ext.version}</p>
           </div>
         </div>
       </td>
@@ -1491,7 +1491,7 @@ function ExtRow({
           {visiblePerms.map(p => (
             <span
               key={p}
-              className={`text-[10px] leading-tight px-2 py-0.5 rounded inline-block ${
+              className={`text-[12px] leading-tight px-2 py-0.5 rounded inline-block ${
                 ext.criticalPermissions.includes(p)
                   ? 'bg-red-100 text-red-700'
                   : ext.elevatedPermissions.includes(p)
@@ -1506,7 +1506,7 @@ function ExtRow({
           {hiddenCount > 0 && !expanded && (
             <button
               onClick={e => { e.stopPropagation(); setExpanded(true); }}
-              className="text-[10px] text-brand-600 hover:text-brand-700 font-medium cursor-pointer text-left"
+              className="text-[12px] text-brand-600 hover:text-brand-700 font-medium cursor-pointer text-left"
             >
               +{hiddenCount} {lang === 'es' ? 'más' : 'more'}
             </button>
@@ -1514,7 +1514,7 @@ function ExtRow({
           {expanded && hiddenCount > 0 && (
             <button
               onClick={e => { e.stopPropagation(); setExpanded(false); }}
-              className="text-[10px] text-gray-400 hover:text-gray-500 font-medium cursor-pointer text-left"
+              className="text-[12px] text-gray-400 hover:text-gray-500 font-medium cursor-pointer text-left"
             >
               {lang === 'es' ? 'Ver menos' : 'Show less'}
             </button>
@@ -1528,33 +1528,33 @@ function ExtRow({
           {isCompleted && report ? (
             <>
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full ${backendRiskBadge[report.riskLevel]?.color ?? ''}`}>
+                <span className={`inline-flex items-center gap-1.5 text-sm font-semibold px-2.5 py-1 rounded-full ${backendRiskBadge[report.riskLevel]?.color ?? ''}`}>
                   <span
                     className="w-1.5 h-1.5 rounded-full"
                     style={{ backgroundColor: backendRiskDot[report.riskLevel] }}
                   />
                   {backendRiskBadge[report.riskLevel]?.label ?? report.riskLevel}
                 </span>
-                <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-semibold">
+                <span className="text-[12px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-semibold">
                   Verificado ✓
                 </span>
               </div>
               {totalFindings > 0 && (
-                <p className="text-[10px] text-gray-400">
+                <p className="text-[12px] text-gray-400">
                   {totalFindings} hallazgo(s) confirmados
                 </p>
               )}
             </>
           ) : (
             <>
-              <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full ${badge.color}`}>
+              <span className={`inline-flex items-center gap-1.5 text-sm font-semibold px-2.5 py-1 rounded-full ${badge.color}`}>
                 <span className="w-1.5 h-1.5 rounded-full bg-current" />
                 {t(`audit.riskLevels.${ext.riskLevel}`)}
               </span>
               {isAnalyzing && (
                 <div className="flex items-center gap-1.5">
                   <div className="w-2.5 h-2.5 border border-brand-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
-                  <p className="text-[10px] text-gray-400">
+                  <p className="text-[12px] text-gray-400">
                     {job && job.status !== 'queued'
                       ? 'Analizando comportamiento...'
                       : 'Solo permisos · Analizando...'}
@@ -1565,7 +1565,7 @@ function ExtRow({
                 <button
                   onClick={submitting ? undefined : triggerAnalyze}
                   disabled={isAnyAnalyzing || submitting}
-                  className={`text-[10px] font-medium text-left ${
+                  className={`text-[12px] font-medium text-left ${
                     submitting ? 'text-gray-400 cursor-wait' :
                     submitError ? 'text-red-500' :
                     isAnyAnalyzing ? 'text-gray-300 cursor-not-allowed' :
@@ -1579,12 +1579,12 @@ function ExtRow({
                 </button>
               )}
               {isUnavailable && (
-                <p className="text-[10px] text-gray-400">☁ Análisis no disponible</p>
+                <p className="text-[12px] text-gray-400">☁ Análisis no disponible</p>
               )}
               {hasFailed && (
                 <button
                   onClick={triggerAnalyze}
-                  className="text-[10px] text-red-500 hover:text-red-600 font-medium text-left"
+                  className="text-[12px] text-red-500 hover:text-red-600 font-medium text-left"
                 >
                   Error en análisis · Reintentar
                 </button>
